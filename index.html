@@ -51,7 +51,7 @@ ul,ol{margin:4px 0;padding-left:22px}
 <li><b>勝負（個人）</b>：海關＝全判對＋壞旅客沒完成任務；好後台同海關；好旅客＝出境且完成任務；壞旅客＝出境或完成任務；壞後台＝壞旅客全數通關。任務完成自己按鈕、誠實制。</li>
 </ul>
 </details>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <script>
 'use strict';
 // ───────── 工具 ─────────
@@ -102,12 +102,12 @@ const ROLE_NAME={customs:'海關',backend:'後台',traveler:'旅客'};
 const LOOK_MS=3000,BLUR_MS=3000,PEEK_MS=4000,SIG_MS=3000,SIG_CD=10000,WANTED_MS=15000,MAXP=6;
 
 // ───────── 連線狀態 ─────────
-const PREFIX='customs-sim-e1-';
-let peer=null,conn=null,isHost=false,room='',V=null,vAt=0,status='',fatal='';
+const BROKER='wss://broker.emqx.io:8084/mqtt',TOPIC='customs-sim-e1/';
+let mq=null,beat=null,isHost=false,room='',V=null,vAt=0,lastView=0,status='',fatal='';
 let myPid=sessionStorage.cs_pid||(sessionStorage.cs_pid=Math.random().toString(36).slice(2,10));
 let myName=sessionStorage.cs_name||'';
 const ui={sig:[]};
-const conns={};   // 主機用：pid → DataConnection
+const lastSeen={},lastSent={};   // 主機用：pid → 最後收到訊息的時間／最後送出的畫面
 let G=null;       // 主機用：完整遊戲狀態
 
 // ───────── 主機：產生內容 ─────────
@@ -204,8 +204,7 @@ function act(pid,m){
       else{const lim={prep:[10,600],turn:[30,900],ap:[0,30]}[m.k],n=Math.round(+m.v);if(lim&&n>=lim[0]&&n<=lim[1])G.cfg[m.k]=n}
     }break;
   case 'kick':if(host&&G.phase==='lobby'&&m.pid!==G.hostPid){
-      G.players=G.players.filter(p=>p.pid!==m.pid);const c=conns[m.pid];
-      if(c){try{c.send({t:'err',msg:'你被房主移出房間'})}catch(e){}setTimeout(()=>c.close(),300);delete conns[m.pid]}
+      G.players=G.players.filter(p=>p.pid!==m.pid);pub('down/'+m.pid,{t:'err',msg:'你被房主移出房間'});
     }break;
   case 'start':if(host&&G.phase==='lobby'&&G.players.length>=3)startGame();break;
   case 'again':if(host&&G.phase!=='lobby'){G.phase='lobby';G.deadline=null}break;
@@ -295,6 +294,7 @@ function viewFor(pid){
 
 function tick(){
   const now=Date.now();
+  for(const p of G.players)if(p.pid!==G.hostPid)p.on=now-(lastSeen[p.pid]||0)<8000;
   if(G.phase==='prep'&&now>=G.deadline)startInspect();
   else if(G.phase==='inspect'&&now>=G.deadline)verdict(pick(['pass','arrest']),true);
   pushAll();
@@ -302,68 +302,76 @@ function tick(){
 function pushAll(){
   for(const p of G.players){
     if(p.pid===G.hostPid){V=viewFor(p.pid);vAt=performance.now()}
-    else{const c=conns[p.pid];if(c&&c.open)try{c.send({t:'view',v:viewFor(p.pid)})}catch(e){}}
+    else{
+      // 畫面有變才送，另外每 2 秒補送一次當心跳
+      const v=viewFor(p.pid),key=JSON.stringify({...v,remain:0,wantedRemain:0,sigCd:v.sigCd>0}),ls=lastSent[p.pid],now=Date.now();
+      if(!ls||ls.key!==key||now-ls.at>2000){pub('down/'+p.pid,{t:'view',v});lastSent[p.pid]={key,at:now}}
+    }
   }
   render();
 }
 
 // ───────── 連線 ─────────
-function send(m){if(isHost){act(myPid,m);pushAll()}else if(conn&&conn.open)conn.send(m)}
+function send(m){if(isHost){act(myPid,m);pushAll()}else pub('up',{pid:myPid,m})}
 function newRoom(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ';return Array.from({length:4},()=>pick(A)).join('')}
+// 所有訊息都經由公開的 MQTT 中繼伺服器轉送（不走點對點，避免兩邊網路打不通）
+const pub=(topic,obj)=>{if(mq&&mq.connected)mq.publish(TOPIC+room+'/'+topic,JSON.stringify(obj))};
+function mqConnect(onReady,onMsg){
+  let first=true;
+  mq=mqtt.connect(BROKER,{clientId:'cs_'+myPid+'_'+Math.random().toString(36).slice(2,6),keepalive:30,reconnectPeriod:2000,connectTimeout:10000});
+  mq.on('connect',()=>{status='';if(first){first=false;onReady()}render()});
+  mq.on('reconnect',()=>{if(!first){status='網路斷線，重連中…';render()}});
+  mq.on('error',()=>{});
+  mq.on('message',(t,buf)=>{let d;try{d=JSON.parse(buf.toString())}catch(e){return}onMsg(d)});
+  setTimeout(()=>{if(first&&mq){const msg='連不上中繼伺服器（這個網路可能擋了 8084 埠，換個網路或開手機熱點試試）';if(isHost){mq.end(true);mq=null;isHost=false;status='';fatal=msg;render()}else leave(msg)}},12000);
+}
 function hostRoom(){
-  isHost=true;room=newRoom();status='建立房間中…';render();
-  peer=new Peer(PREFIX+room);
-  peer.on('open',()=>{
-    status='';
+  isHost=true;room=newRoom();status='建立房間中…';fatal='';render();
+  mqConnect(()=>{
+    mq.subscribe(TOPIC+room+'/up');
     G={phase:'lobby',hostPid:myPid,cfg:{customs:'',prep:90,turn:180,ap:10},players:[{pid:myPid,name:myName,on:true}],notes:{},deadline:null};
     setInterval(tick,500);pushAll();
-  });
-  peer.on('connection',c=>{
-    c.on('data',d=>{
-      if(d.t==='hello'){
-        const pid=String(d.pid),name=String(d.name||'玩家').slice(0,12);let p=G.players.find(x=>x.pid===pid);
-        if(!p){
-          if(G.phase!=='lobby')return c.send({t:'err',msg:'遊戲進行中，下一局再加入'});
-          if(G.players.length>=MAXP)return c.send({t:'err',msg:`房間已滿（最多 ${MAXP} 人）`});
-          p={pid,name,on:true};G.players.push(p);
-        }
-        if(conns[pid]&&conns[pid]!==c)try{conns[pid].close()}catch(e){}
-        conns[pid]=c;c.pid=pid;p.on=true;if(G.phase==='lobby')p.name=name;pushAll();
-      }else if(c.pid&&G.players.some(p=>p.pid===c.pid)){act(c.pid,d);pushAll()}
-    });
-    c.on('close',()=>{if(c.pid&&conns[c.pid]===c){delete conns[c.pid];const p=G.players.find(x=>x.pid===c.pid);if(p)p.on=false}});
-  });
-  peer.on('disconnected',()=>{if(!peer.destroyed)peer.reconnect()});
-  peer.on('error',e=>{
-    if(e.type==='unavailable-id'&&!G){peer.destroy();hostRoom()}
-    else if(!G){status='';fatal='連不上連線伺服器：'+e.type;render()}
-  });
+  },onUp);
+}
+function onUp(d){
+  if(!G)return;
+  const pid=String(d.pid||''),m=d.m;if(!pid||!m||pid===myPid)return;
+  let p=G.players.find(x=>x.pid===pid);
+  if(m.t==='hello'){
+    const name=String(m.name||'玩家').slice(0,12);
+    if(!p){
+      if(G.phase!=='lobby')return pub('down/'+pid,{t:'err',msg:'遊戲進行中，下一局再加入'});
+      if(G.players.length>=MAXP)return pub('down/'+pid,{t:'err',msg:`房間已滿（最多 ${MAXP} 人）`});
+      p={pid,name,on:true};G.players.push(p);
+    }else if(G.phase==='lobby')p.name=name;
+    lastSeen[pid]=Date.now();p.on=true;delete lastSent[pid];pushAll();return;
+  }
+  if(!p)return;
+  lastSeen[pid]=Date.now();p.on=true;
+  if(m.t==='ping')return;
+  act(pid,m);tick();
 }
 function joinRoom(code){
   isHost=false;room=code;sessionStorage.cs_room=code;status='連線中…';fatal='';render();
-  peer=new Peer();
-  peer.on('open',connect);
-  peer.on('disconnected',()=>{if(!peer.destroyed)peer.reconnect()});
-  peer.on('error',e=>{
-    if(e.type==='peer-unavailable'){
-      if(V){status='與房主斷線，重連中…';render();setTimeout(connect,2000)}
-      else leave(`找不到房間 ${room}（房號打錯，或房主已關閉分頁）`);
-    }else if(!V){leave('連線失敗：'+e.type)}
-  });
-}
-function connect(){
-  if(!peer||peer.destroyed||fatal)return;
-  if(peer.disconnected){setTimeout(connect,1500);return}
-  conn=peer.connect(PREFIX+room,{reliable:true,serialization:'json'});
-  const c=conn;
-  c.on('open',()=>{status='';c.send({t:'hello',pid:myPid,name:myName})});
-  c.on('data',d=>{
-    if(d.t==='view'){V=d.v;vAt=performance.now();render()}
+  mqConnect(()=>{
+    const t0=Date.now(),hello=()=>pub('up',{pid:myPid,m:{t:'hello',name:myName}});
+    mq.subscribe(TOPIC+room+'/down/'+myPid,hello);
+    beat=setInterval(()=>{
+      if(!V){
+        if(Date.now()-t0>12000)return leave(`找不到房間 ${room}（房號打錯，或房主已關閉分頁）`);
+        hello();
+      }else{
+        pub('up',{pid:myPid,m:{t:'ping'}});
+        const st=Date.now()-lastView>6000?'收不到房主的訊號，等待中…（房主分頁要保持開著）':'';
+        if(st!==status&&mq&&mq.connected){status=st;render()}
+      }
+    },2000);
+  },d=>{
+    if(d.t==='view'){V=d.v;vAt=performance.now();lastView=Date.now();if(status)status='';render()}
     else if(d.t==='err')leave(d.msg);
   });
-  c.on('close',()=>{if(conn===c&&!fatal&&peer){status='與房主斷線，重連中…';render();setTimeout(connect,2000)}});
 }
-function leave(msg){fatal=msg;V=null;room='';delete sessionStorage.cs_room;if(peer){peer.destroy();peer=null}render()}
+function leave(msg){fatal=msg;V=null;room='';status='';delete sessionStorage.cs_room;clearInterval(beat);if(mq){mq.end(true);mq=null}render()}
 
 // ───────── 畫面 ─────────
 const fmt=ms=>{const s=Math.ceil(ms/1000);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
@@ -548,10 +556,10 @@ function endHtml(v){
 // ───────── 事件 ─────────
 function readName(){const n=(document.getElementById('nm').value||'').trim().slice(0,12);if(!n){fatal='先填暱稱';render();return false}myName=sessionStorage.cs_name=n;fatal='';return true}
 function localAct(m){
-  if(m.local==='host'){if(!window.Peer){fatal='PeerJS 沒載入，檢查網路';render();return}if(readName())hostRoom()}
+  if(m.local==='host'){if(!window.mqtt){fatal='連線元件沒載入，檢查網路後重新整理';render();return}if(readName())hostRoom()}
   else if(m.local==='join'){
     const code=(document.getElementById('rc').value||'').trim().toUpperCase();
-    if(!window.Peer){fatal='PeerJS 沒載入，檢查網路';render();return}
+    if(!window.mqtt){fatal='連線元件沒載入，檢查網路後重新整理';render();return}
     if(!readName())return;if(!/^[A-Z]{4}$/.test(code)){fatal='房號是 4 個英文字母';render();return}
     joinRoom(code);
   }
@@ -571,7 +579,7 @@ document.addEventListener('submit',e=>{
 window.addEventListener('beforeunload',e=>{if(isHost&&G&&G.phase!=='lobby'){e.preventDefault();e.returnValue=''}});
 
 // 重新整理後自動回到原房間（主機除外）
-if(sessionStorage.cs_room&&myName&&window.Peer)joinRoom(sessionStorage.cs_room);else render();
+if(sessionStorage.cs_room&&myName&&window.mqtt)joinRoom(sessionStorage.cs_room);else render();
 </script>
 </body>
 </html>
