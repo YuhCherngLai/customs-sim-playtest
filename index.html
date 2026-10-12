@@ -75,7 +75,7 @@ button.lab{background:#3a3152;border-color:#5b4d85}
 <li><b>海關</b>：不知道任何人的陣營。準備時間先看通緝名單，通關時隨時可以再翻開來看（免費，但時間照樣在跑）。每位旅客限時下判：放行或抓人，超時系統隨機判。行動點數整局共用。</li>
 <li><b>後台</b>（一正一反）：看得到所有旅客的條列資料與行李箱 X 光（只有形狀，藏身上的照不到）。<b>壞後台一開始就知道每位旅客的身分，好後台不知道</b>、只能自己猜。每位後台各有一個螢幕，用定型的詞組一句話（有字數上限）秀給櫃台前的旅客看；兩位後台看不到彼此的螢幕。</li>
 <li><b>行李與搜身</b>：行李箱是 4×3 格，放得下才算；超過 3 格的東西藏不了身上。身上有 6 個位置，海關用探測棒按住掃描（金屬才會嗶），花 2 點可以叫旅客掏出指定位置。</li>
-<li><b>職業許可</b>：有些危險物品特定職業可以合法攜帶，而且有合理的解釋（例如廚師帶刀是吃飯的傢伙、牛仔帶槍是趕牛用的、獸醫帶麻醉藥水是幫動物麻醉）。搜到東西不代表有罪，要對職業、聽解釋。</li>
+<li><b>職業許可</b>：有些危險物品特定職業可以合法攜帶，而且有合理的解釋（例如廚師帶刀是吃飯的傢伙、牛仔帶槍是趕牛用的、獸醫帶麻醉藥水是幫動物麻醉）。搜到東西不代表有罪，要對職業、聽解釋。<b>反過來，職業和解釋都對得上也不代表清白</b>：通緝犯的假身分也可能剛好是有許可的職業。</li>
 <li><b>好旅客</b>：全程拿著回憶錄，但內容只有很模糊的大方向（「人到中年」「工作整天坐著」），沒有精確答案；後台和通緝犯拿的才是精確的條列版。<b>壞旅客＝通緝犯</b>：護照是假名，最多易容 2 類（「特徵」改不了），小抄輪到你時會被收走。</li>
 <li><b>回頭偷看</b>：海關可回頭看兩位後台的螢幕；後台會被通知、櫃台前的壞旅客可趁機偷看小抄 4 秒、海關畫面會糊 3 秒，回頭越多越糊。</li>
 <li><b>勝負（個人）</b>：海關＝全判對＋壞旅客沒完成任務；好後台同海關；好旅客＝出境且完成任務；壞旅客＝出境或完成任務；壞後台＝壞旅客全數通關。任務完成自己按鈕、誠實制。</li>
@@ -137,6 +137,7 @@ const CONTRA=[
   ['一盒活蟲','方盒、內有多塊有機物',0,['XXX','XXX'],{昆蟲學家:'研究用的活體標本',農夫:'放進田裡吃害蟲的益蟲'}]
 ];
 const LEGIT_JOBS=[...new Set(CONTRA.flatMap(c=>Object.keys(c[4])))];
+const PLAIN_JOBS=JOB.filter(j=>!LEGIT_JOBS.includes(j));   // 沒有任何許可的職業
 const legitFor=job=>CONTRA.filter(c=>job in c[4]);
 const TASK_GOOD=['讓海關親口說出「歡迎」','讓海關笑出聲','審問中自然提到三種食物','反問海關一個問題並得到回答','讓海關對你用一次金屬探測','讓海關重複一次你說過的話'];
 const TASK_BAD=['審問中說出「炸彈」兩個字而沒被追問','讓海關全程沒開你的行李箱','讓海關為了你回頭偷看螢幕一次','故意答錯一題個資而沒被拆穿','讓海關對你說「不好意思」','讓海關在你身上花不到 2 點行動點數'];
@@ -161,7 +162,7 @@ const genLooks=()=>Object.fromEntries(CATS.map(k=>[k,pick(FEAT[k])]));
 function genName(used){let n;do{n=pick(SUR)+pick(GIV1)+pick(GIV2)}while(used.has(n));used.add(n);return n}
 function nameVariant(name,used){let n;do{n=name.slice(0,-1)+pick(GIV2)}while(used.has(n));used.add(n);return n}
 function looksVariant(l){const o={...l};for(const k of shuffle(CATS).slice(0,2))o[k]=pick(FEAT[k].filter(v=>v!==l[k]));return o}
-const genId=(name,legit)=>({name,age:22+rnd(47),job:legit?pick(LEGIT_JOBS):pick(JOB),from:pick(FROM),purpose:pick(PURPOSE),days:2+rnd(13),stay:pick(STAY),companion:pick(COMP),pet:pick(PET)});
+const genId=(name,legit)=>({name,age:22+rnd(47),job:legit?pick(LEGIT_JOBS):pick(PLAIN_JOBS),from:pick(FROM),purpose:pick(PURPOSE),days:2+rnd(13),stay:pick(STAY),companion:pick(COMP),pet:pick(PET)});
 // 好旅客的回憶錄：只有很模糊的大方向（好幾個不同的答案會對到同一句話），
 // 精確的答案只有後台和通緝犯有，好旅客得靠海關背後的螢幕補細節。
 const M_JOB={國小老師:'工作要一直講話，面對的人年紀都不大',計程車司機:'工作整天坐著，在外面到處跑',水電師傅:'靠手藝吃飯，常常跑別人家',護理師:'工作要輪班，都在照顧人',麵包師傅:'工作要起很早，離火很近',軟體工程師:'工作整天坐著，對著機器',會計:'工作整天坐著，跟數字打交道',攝影師:'靠一台機器吃飯，常往外跑',退休公務員:'已經不用上班了',保險業務:'工作要一直講話，到處見人',大學生:'還沒開始賺錢',廚師:'工作離火很近，要站一整天',牛仔:'工作在戶外，整天跟動物在一起',煙火師傅:'工作有點危險，成果要到晚上才看得到',魔術師:'靠騙人的手法吃飯，但大家都很開心',保全:'工作就是站著看門，常上夜班',
@@ -194,14 +195,15 @@ function autoPack(items){
   return true;
 }
 // 好旅客：職業有許可的話，會帶著那件「看起來很危險、其實合法」的職業用品（lg）。
-// 壞旅客：帶一件自己的假職業不能合法攜帶的違禁品（c）。
+// 壞旅客：一定帶一件違禁品（c）。假職業有許可的話，帶的就是那個職業能解釋的東西（有掩護說法 why），
+// 所以「職業對得上」不代表他是好人；假職業沒有許可的話，帶的東西就完全解釋不了。
 function genItems(bad,job){
   for(;;){
     let its;
     if(bad){
-      const c=pick(CONTRA.filter(q=>!(job in q[4])));
+      const cover=legitFor(job),c=cover.length?pick(cover):pick(CONTRA);
       its=shuffle(ORD).slice(0,3).map(o=>({n:o[0],x:o[1],m:!!o[2],c:false,lg:false,sh:o[4]}));
-      its.push({n:c[0],x:c[1],m:!!c[2],c:true,lg:false,sh:c[3]});
+      its.push({n:c[0],x:c[1],m:!!c[2],c:true,lg:false,why:c[4][job]||null,sh:c[3]});
     }else{
       const lg=legitFor(job),tool=lg.length?pick(lg):null,sus=pick(ORD.filter(o=>o[3]));
       const ords=tool?shuffle(ORD).slice(0,3):[sus,...shuffle(ORD.filter(o=>o!==sus)).slice(0,3)];
@@ -244,7 +246,7 @@ function startGame(){
       t={real:null,passName:genName(used),looks:genLooks()};
       G.wanted.push({name:nameVariant(t.passName,used),looks:looksVariant(t.looks),crime:pick(CRIME)});
     }
-    Object.assign(t,{id:genId(t.passName,!bad&&rnd(2)===0),task:pick(bad?TASK_BAD:TASK_GOOD),taskDone:false,verdict:null,auto:false,opened:false,scanned:{},taken:{}});
+    Object.assign(t,{id:genId(t.passName,rnd(100)<40),task:pick(bad?TASK_BAD:TASK_GOOD),taskDone:false,verdict:null,auto:false,opened:false,scanned:{},taken:{}});
     t.items=genItems(bad,t.id.job);t.phr=genPhrases(t.id);
     G.trav[p]=t;
   }
@@ -404,7 +406,7 @@ function viewFor(pid){
     const t=G.trav[pid],idx=G.queue.indexOf(pid),at=pid===cp;
     const sheetOn=G.phase==='prep'||idx>G.cur||(at&&now<G.peekUntil);
     Object.assign(v,{passport:{name:t.passName,looks:t.looks},real:t.real,items:t.items.map((i,k)=>({i:k,n:i.lg?i.n+'（職業用品，合法）':i.n,x:i.x,m:i.m,c:i.c,sh:i.sh,loc:i.loc,gx:i.gx,gy:i.gy,r:i.r,slot:i.slot})),
-      tools:t.items.filter(i=>i.lg).map(i=>({n:i.n,why:i.why})),task:t.task,taskDone:t.taskDone,at,pos:idx-G.cur,myVerdict:t.verdict,screens:at?scr:null,
+      tools:t.items.filter(i=>i.why).map(i=>({n:i.n,why:i.why})),task:t.task,taskDone:t.taskDone,at,pos:idx-G.cur,myVerdict:t.verdict,screens:at?scr:null,
       memoir:r.bad?null:memoir(t.id),sheet:r.bad&&sheetOn?t.id:null,peek:r.bad&&at&&now<G.peekUntil});
   }
   return v;
@@ -560,7 +562,7 @@ function guideHtml(v){
     others='同一時間：海關在背通緝名單、後台在讀旅客資料、旅客在裝行李（壞旅客還要易容和背小抄）。';
   }else if(v.phase==='inspect'){
     const cur=v.queue.find(q=>q.cur),who=cur?`${esc(cur.pass)}（${esc(cur.player)}）`:'';
-    if(v.role==='customs')me=[`用語音審問 ${who}：姓名、職業、從哪來、來做什麼、住哪…`,'看「耳機」裡後台回報旅客答得對不對（兩位後台有一個是內鬼）。普通旅客只記得大概，答得模糊但對得上是正常的；答得一字不差反而像背稿','比對護照長相跟通緝名單，隨時可以按「翻開通緝名單」再看（免費，但時間照樣在跑）',`拿探測棒在旅客身上按住掃描（免費但花時間），嗶了可以花 2 點取出那個位置；開行李也是 2 點（整局共用，剩 ${v.ap} 點）`,'搜到危險物品先別急著抓：有些職業可以合法攜帶（看「職業許可」），先確認他的職業','倒數結束前按「放行」或「抓人」，超時系統會亂判'];
+    if(v.role==='customs')me=[`用語音審問 ${who}：姓名、職業、從哪來、來做什麼、住哪…`,'看「耳機」裡後台回報旅客答得對不對（兩位後台有一個是內鬼）。普通旅客只記得大概，答得模糊但對得上是正常的；答得一字不差反而像背稿','比對護照長相跟通緝名單，隨時可以按「翻開通緝名單」再看（免費，但時間照樣在跑）',`拿探測棒在旅客身上按住掃描（免費但花時間），嗶了可以花 2 點取出那個位置；開行李也是 2 點（整局共用，剩 ${v.ap} 點）`,'搜到危險物品先別急著抓：有些職業可以合法攜帶（看「職業許可」）。但職業對得上也不代表他是好人，通緝犯也會假扮成那種職業','倒數結束前按「放行」或「抓人」，超時系統會亂判'];
     else if(v.role==='backend')me=[`聽 ${who} 回答海關的問題，對照下面那張條列資料`,v.bad?'打字回報給海關——你是內鬼，可以說謊幫壞旅客過關，也可以把普通旅客的小出入說成大破綻，但別太明顯':'打字告訴海關答得對不對。普通旅客只有模糊的回憶錄（例如只知道「五十出頭」），差一點是正常的，差很多才可疑',v.bad?'你知道誰是通緝犯：幫他掩護、把嫌疑引到普通旅客身上；X 光的可疑形狀要不要講由你決定':'看 X 光，有可疑形狀就提醒海關開行李',`用定型的詞組一句話送上你的螢幕（最多 ${SCR_MAX} 個字，例如「職業是廚師」）：旅客看得到兩個螢幕，另一位後台看不到你的，海關要回頭才看得到`];
     else if(v.myVerdict)me=['你已經判完了，可以旁聽後面的審問','任務如果完成了，記得按「我完成任務了」'];
     else if(v.at)me=v.bad?['用語音回答海關，小抄已經被收走，靠記憶講','海關一回頭就趕快偷看小抄（只有 4 秒）','留意海關背後的螢幕：兩位後台各控制一個，其中一位是內鬼，提示不一定是真的；也可以比動作','想辦法完成專屬任務，完成就按鈕']:['用語音回答海關：回憶錄只有大概，把它換成自己的話講，被追問精確數字就合理地估','想辦法完成專屬任務，完成就按鈕（要出境＋完成任務才算贏）','留意海關背後的螢幕：兩位後台各控制一個，其中一位是內鬼，提示不一定是真的；也可以比動作'];
@@ -652,7 +654,7 @@ function lobbyHtml(v){
 }
 
 const sideTag=t=>t.bad==null?'':t.bad?' <span class="chip" style="border-color:var(--bad);color:var(--bad)">😈 通緝犯</span>':' <span class="chip" style="border-color:var(--good);color:var(--good)">😇 普通旅客</span>';
-const permitHtml=()=>`<div class="permit">${btn(ui.permit?'📜 收起職業許可表':'📜 翻開職業許可表',{local:'permit'},'sm')} <span class="dim">有些職業帶危險物品是合法的，其他人帶就是違禁品</span>${ui.permit?`<table>${CONTRA.map(c=>`<tr><td><b>${c[0]}</b></td><td>${Object.entries(c[4]).map(([j,w])=>`<b>${j}</b><span class="dim">（${w}）</span>`).join('<br>')}</td></tr>`).join('')}</table>`:''}</div>`;
+const permitHtml=()=>`<div class="permit">${btn(ui.permit?'📜 收起職業許可表':'📜 翻開職業許可表',{local:'permit'},'sm')} <span class="dim">有些職業帶危險物品是合法的；但通緝犯也可能假扮成那種職業</span>${ui.permit?`<table>${CONTRA.map(c=>`<tr><td><b>${c[0]}</b></td><td>${Object.entries(c[4]).map(([j,w])=>`<b>${j}</b><span class="dim">（${w}）</span>`).join('<br>')}</td></tr>`).join('')}</table>`:''}</div>`;
 const sideName=(i,n)=>n>1?(i?'右螢幕':'左螢幕'):'螢幕';
 const screenBox=t=>`<div class="screen">${t?esc(t):'<span class="dim" style="font-size:15px">（空白）</span>'}</div>`;
 const screensHtml=a=>`<div class="scr2">${a.map((t,i)=>`<div><div class="dim" style="text-align:center;font-size:13px">${sideName(i,a.length)}</div>${screenBox(t)}</div>`).join('')}</div>`;
@@ -667,7 +669,8 @@ function xrayHtml(items){
 function travelerIdHtml(v){
   if(!v.bad)return `<h3>📖 你的回憶錄（全程可看）</h3><div class="memo">${esc(v.memoir)}</div>${(v.tools||[]).map(t=>`<div class="permit">🧰 你帶著<b>${esc(t.n)}</b>，這是你工作要用的：${esc(t.why)}。它是合法的，被搜到就照實解釋。</div>`).join('')}<p class="dim" style="margin:4px 0 0">回憶錄只有很模糊的大方向，連你做什麼工作、從哪裡來都只有一點線索。精確的答案在後台手上：輪到你時留意海關背後的螢幕，後台會給提示，但其中一位是內鬼。</p>`;
   return `<h3>📝 假身分小抄${v.peek?'<span class="warn">（海關回頭了，快偷看！）</span>':''}</h3>`+
-    (v.sheet?`<div class="memo">${idList(v.sheet)}</div>`:'<div class="memo dim">小抄已經跟護照一起被收走了，只能靠記憶。海關回頭時可以偷看 4 秒。</div>');
+    (v.sheet?`<div class="memo">${idList(v.sheet)}</div>`:'<div class="memo dim">小抄已經跟護照一起被收走了，只能靠記憶。海關回頭時可以偷看 4 秒。</div>')+
+    (v.tools||[]).map(t=>`<div class="permit">🎭 掩護說法：你的假職業可以合法帶<b>${esc(t.n)}</b>——${esc(t.why)}。被搜到就這樣講（這句不會被收走）。</div>`).join('');
 }
 
 function prepHtml(v){
@@ -748,7 +751,7 @@ function endHtml(v){
     <p>判決：${t.verdict==='pass'?'✅ 放行':'🚨 抓人'}${t.auto?'（超時隨機）':''}　任務：${esc(t.task)} → ${t.taskDone?'<span class="good">完成</span>':'<span class="dim">未完成</span>'}</p>
     ${t.real?`<p>本名 <b>${esc(t.real.name)}</b>，易容了：${CATS.filter(k=>t.looks[k]!==t.real.looks[k]).map(k=>`${k}（${esc(t.real.looks[k])}→${esc(t.looks[k])}）`).join('、')||'完全沒易容'}</p>`:''}
     ${lk(t.looks)}${idList(t.id)}
-    <p>行李箱：${t.items.filter(i=>i.loc==='bag').map(i=>(i.c?'【違禁品】':i.lg?'【職業許可】':'')+esc(i.n)+(i.lg?`（${esc(i.why)}）`:'')).join('、')||'空'}<br>身上：${t.items.filter(i=>i.loc==='body').map(i=>`${slotLabel(i.slot)}＝${i.c?'【違禁品】':i.lg?'【職業許可】':''}${esc(i.n)}${i.lg?`（${esc(i.why)}）`:''}`).join('、')||'空'}</p></div>`).join('')}
+    <p>行李箱：${t.items.filter(i=>i.loc==='bag').map(i=>(i.c?(i.why?'【違禁品・有職業掩護】':'【違禁品】'):i.lg?'【職業許可】':'')+esc(i.n)+(i.why?`（${esc(i.why)}）`:'')).join('、')||'空'}<br>身上：${t.items.filter(i=>i.loc==='body').map(i=>`${slotLabel(i.slot)}＝${i.c?(i.why?'【違禁品・有職業掩護】':'【違禁品】'):i.lg?'【職業許可】':''}${esc(i.n)}${i.why?`（${esc(i.why)}）`:''}`).join('、')||'空'}</p></div>`).join('')}
   <div class="card wide"><h2>📋 通緝名單</h2>${wantedTable(e.wanted)}</div>`+logCard(v);
 }
 
