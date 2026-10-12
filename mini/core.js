@@ -10,7 +10,7 @@ const FEAT={
 };
 const CATS=Object.keys(FEAT);
 // 行李箱格子與身上的藏匿位置
-const GRID={w:4,h:3};
+const GRID={w:3,h:3,d:3};   // 行李箱：寬 × 深 × 可以疊幾層
 const SLOTS=[{id:'hat',label:'帽子裡'},{id:'coat',label:'外套內袋'},{id:'waist',label:'腰間'},{id:'lp',label:'左口袋'},{id:'rp',label:'右口袋'},{id:'shoe',label:'鞋子裡'}];
 const BODY_MAX_CELLS=3;   // 超過 3 格的東西太大，藏不到身上
 // 形狀 sh（例如 ["XX","X."]）順時針轉 r 次 90° 之後佔的格子，回傳 [[x,y],...]，最小 x、y 都是 0
@@ -20,7 +20,43 @@ function cells(sh,r){
   return c;
 }
 // 依六類特徵畫出原創的膠囊人大頭照（護照與通緝令共用，同樣特徵一定畫出同一張臉）
-function face(l,size=88,bg='#cfd8e6'){
+// ── 3D 堆行李：每件東西厚 1 層，從上面放下去，會落在底下東西的最高點上 ──
+// 行李箱裡每一格目前疊到第幾層（不算 except 這件）
+function colHeights(items,except){
+  const h={};
+  for(const o of items)if(o!==except&&o.loc==='bag')for(const [cx,cy] of cells(o.sh,o.r)){const k=(o.gx+cx)+','+(o.gy+cy);h[k]=Math.max(h[k]||0,o.gz+1)}
+  return h;
+}
+// 把 it 以 (x,y)、轉 r 次放下去會落在第幾層；出界或超出箱子高度回傳 -1
+function dropZ(items,it,x,y,r){
+  const mine=cells(it.sh,r).map(([cx,cy])=>[x+cx,y+cy]);
+  if(mine.some(([cx,cy])=>cx<0||cy<0||cx>=GRID.w||cy>=GRID.h))return -1;
+  const h=colHeights(items,it),z=Math.max(0,...mine.map(([cx,cy])=>h[cx+','+cy]||0));
+  return z<GRID.d?z:-1;
+}
+// 有東西被拿走之後，上面的東西往下掉
+function settle(items){
+  const bag=items.filter(o=>o.loc==='bag').sort((a,b)=>a.gz-b.gz),done=[];
+  for(const o of bag){o.gz=Math.max(0,dropZ(done,o,o.gx,o.gy,o.r));done.push(o)}
+}
+
+// ── 純娛樂的打扮（不影響任何判定）：背景色與小配件 ──
+const DECO_BG=['#cfd8e6','#ffd9e0','#d8f3dc','#fff3bf','#e5dbff','#ffe8cc','#c5f6fa','#343a40'];
+const DECO_ACC=['沒有','蝴蝶結','胸花','徽章','氣球','星星貼紙','愛心貼紙','小旗子'];
+function decoSvg(acc){
+  switch(acc){
+    case '蝴蝶結':return '<path d="M50,90 L40,84 L40,96Z M50,90 L60,84 L60,96Z" fill="#e8437a"/><circle cx="50" cy="90" r="2.6" fill="#b82e5c"/>';
+    case '胸花':return [0,72,144,216,288].map(a=>`<circle cx="${(66+4*Math.cos(a*Math.PI/180)).toFixed(1)}" cy="${(98+4*Math.sin(a*Math.PI/180)).toFixed(1)}" r="3" fill="#ff8fb1"/>`).join('')+'<circle cx="66" cy="98" r="2.4" fill="#ffd84d"/>';
+    case '徽章':return '<circle cx="35" cy="99" r="5.5" fill="#f2b705" stroke="#a87b00"/><path d="M35,95.5 l1.2,2.5 2.8,.3 -2.1,1.9 .6,2.8 -2.5,-1.5 -2.5,1.5 .6,-2.8 -2.1,-1.9 2.8,-.3z" fill="#fff"/>';
+    case '氣球':return '<path d="M88,40 Q86,62 82,96" stroke="#888" fill="none"/><ellipse cx="88" cy="28" rx="9" ry="11.5" fill="#ff6b6b"/><ellipse cx="85" cy="24" rx="2.4" ry="3.4" fill="#fff" opacity=".6"/>';
+    case '星星貼紙':return '<path d="M12,10 l2.6,5.6 6,.7 -4.5,4.1 1.3,6 -5.4,-3.1 -5.4,3.1 1.3,-6 -4.5,-4.1 6,-.7z" fill="#ffd84d" stroke="#e0a800"/>';
+    case '愛心貼紙':return '<path d="M12,24 C2,16 5,6 12,12 C19,6 22,16 12,24Z" fill="#ff5d8f"/>';
+    case '小旗子':return '<path d="M12,112 L12,74" stroke="#8a6d3b" stroke-width="2"/><path d="M12,74 L26,79 L12,85Z" fill="#3fa9f5"/>';
+  }
+  return '';
+}
+function face(l,size=88,bg='#cfd8e6',deco){
+  if(deco&&DECO_BG[deco.bg])bg=DECO_BG[deco.bg];
   const SK='#f3c9a0',HR='#3b2a20',o=[];
   const hair=l.髮型,top=l.上衣,hat=l.帽子,gl=l.眼鏡,bd=l.鬍子,mk=l.特徵;
   o.push(`<rect width="100" height="120" rx="10" fill="${bg}"/>`);
@@ -72,6 +108,7 @@ function face(l,size=88,bg='#cfd8e6'){
   if(hat==='毛帽')o.push('<path d="M23,34 A27,27 0 0 1 77,34Z" fill="#2f6fd0"/><rect x="21" y="29" width="58" height="10" rx="5" fill="#7fb0f5"/><circle cx="50" cy="7" r="6.5" fill="#fff"/>');
   if(hat==='草帽')o.push('<path d="M32,32 L35,13 Q50,7 65,13 L68,32Z" fill="#f1d57a"/><ellipse cx="50" cy="33" rx="45" ry="7" fill="#e8c65a"/><path d="M32.5,29 L67.5,29 L67,24 L33,24Z" fill="#b5473c"/>');
   if(mk==='戴耳環')o.push('<circle cx="23" cy="64" r="4.5" fill="none" stroke="#f2b705" stroke-width="2.4"/>');
+  if(deco)o.push(decoSvg(deco.acc));
   return `<svg class="face" width="${size}" height="${Math.round(size*1.2)}" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">${o.join('')}</svg>`;
 }
 window.Mini=window.Mini||{};
