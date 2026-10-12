@@ -53,6 +53,11 @@ ul,ol{margin:4px 0;padding-left:22px}
 .wcard .face{margin:4px auto}.wcard b{font-size:17px;display:block}
 .wtitle{font-weight:900;letter-spacing:2px;color:#a3261d;border-bottom:2px solid #a3261d;margin-bottom:4px}
 .wfeat{line-height:1.45;margin:2px 0}.wcrime{display:inline-block;background:#a3261d;color:#fff;border-radius:4px;padding:0 8px;margin-top:2px}
+.xwrap{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.xgrid{position:relative;flex:none;border:2px solid #1d6f78;border-radius:6px;background:#04161c repeating-linear-gradient(0deg,transparent 0 33px,#0d3a44 33px 34px),repeating-linear-gradient(90deg,transparent 0 33px,#0d3a44 33px 34px)}
+.xc{position:absolute;width:34px;height:34px;box-sizing:border-box;border:1px solid rgba(255,255,255,.35);color:#001;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center}
+.xm{background:#3fa9f5;box-shadow:0 0 8px #3fa9f5}.xo{background:#ff9f43;box-shadow:0 0 8px #ff9f43}
+.xlist{margin:0;padding-left:20px;font-size:13.5px}.xtm{color:#3fa9f5}.xto{color:#ff9f43}
 #rules{color:var(--dim);font-size:13.5px}#rules summary{cursor:pointer;color:var(--fg)}
 </style>
 </head>
@@ -65,12 +70,17 @@ ul,ol{margin:4px 0;padding-left:22px}
 <li><b>語音</b>：大家開 Discord。海關和旅客用講的；<b>後台不要對海關開口</b>，一律用畫面上的「耳機」打字（旅客看不到）。</li>
 <li><b>海關</b>：不知道任何人的陣營。準備時間背通緝名單，之後重看要花 1 點。每位旅客限時下判：放行或抓人，超時系統隨機判。行動點數整局共用。</li>
 <li><b>後台</b>（一正一反）：看得到所有旅客的條列資料與行李箱 X 光（只有形狀，藏身上的照不到）。不知道誰是壞旅客，自己猜。可打暗號到海關背後的螢幕（3 秒）。</li>
+<li><b>行李與搜身</b>：行李箱是 4×3 格，放得下才算；超過 3 格的東西藏不了身上。身上有 6 個位置，海關用探測棒按住掃描（金屬才會嗶），花 2 點可以叫旅客掏出指定位置。</li>
 <li><b>好旅客</b>：全程拿著 100 字回憶錄。<b>壞旅客＝通緝犯</b>：護照是假名，最多易容 2 類（「特徵」改不了），小抄輪到你時會被收走。</li>
 <li><b>回頭偷看</b>：海關可回頭看螢幕暗號；後台會被通知、櫃台前的壞旅客可趁機偷看小抄 4 秒、海關畫面會糊 3 秒，回頭越多越糊。</li>
 <li><b>勝負（個人）</b>：海關＝全判對＋壞旅客沒完成任務；好後台同海關；好旅客＝出境且完成任務；壞旅客＝出境或完成任務；壞後台＝壞旅客全數通關。任務完成自己按鈕、誠實制。</li>
 </ul>
 </details>
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script src="mini/core.js"></script>
+<script src="mini/disguise.js"></script>
+<script src="mini/pack.js"></script>
+<script src="mini/metal.js"></script>
 <script>
 'use strict';
 // ───────── 工具 ─────────
@@ -81,15 +91,6 @@ const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[
 const btn=(label,msg,cls='',dis=false)=>`<button class="${cls}" data-a="${esc(JSON.stringify(msg))}"${dis?' disabled':''}>${label}</button>`;
 
 // ───────── 資料池（全部暫定，試玩後再調） ─────────
-const FEAT={
-  髮型:['短髮','長髮','捲髮','光頭','馬尾','平頭'],
-  眼鏡:['沒戴眼鏡','圓框眼鏡','方框眼鏡','墨鏡'],
-  鬍子:['沒留鬍子','八字鬍','山羊鬍','落腮鬍'],
-  帽子:['沒戴帽子','棒球帽','漁夫帽','毛帽','草帽'],
-  上衣:['白襯衫','花襯衫','黑色帽T','西裝','條紋衫','皮夾克'],
-  特徵:['左臉有痣','眉毛有疤','戴耳環','脖子有刺青','有酒窩','鑲金牙','滿臉雀斑','缺一顆門牙']
-};
-const CATS=Object.keys(FEAT);
 const SUR=['陳','林','黃','張','李','王','吳','劉','蔡','楊','許','鄭','謝','郭','洪'];
 const GIV1=['志','淑','家','美','俊','雅','建','怡','冠','佩','文','秀','國','麗','阿','大'];
 const GIV2=['明','民','銘','芬','芳','豪','浩','玲','琳','傑','杰','婷','庭','宏','弘','君','均','宇','羽','珊'];
@@ -101,17 +102,18 @@ const PURPOSE=['探望孫子','參加朋友婚禮','出差開會','自由行觀�
 const STAY=['親戚家','車站前的商務旅館','青年旅館','朋友租的公寓','海邊民宿','五星級飯店'];
 const COMP=['自己一個人','和太太','和先生','和兩位同事','和大學同學','和媽媽'];
 const PET=['沒養寵物','養了一隻柴犬','養了兩隻貓','養了一缸金魚','養了一隻鸚鵡','養了一隻烏龜'];
-// [名稱, X 光看起來, 是否金屬, 形狀是否可疑]
+// [名稱, X 光看起來, 是否金屬, 形狀是否可疑, 佔的格子]
 const ORD=[
-  ['吹風機','L 形、有握把的金屬物',1,1],['自拍棒','細長棒狀金屬',1,1],['嬰兒爽身粉','罐裝白色粉末',0,1],
-  ['鬧鐘','圓形、內有齒輪與電線',1,1],['一疊旅遊書','方形紙類堆疊',0,1],['行動電源','磚塊狀高密度電子物',1,1],
-  ['洗髮精','瓶裝液體',0,1],['保溫瓶','圓柱形金屬容器',1,0],['電動刮鬍刀','手掌大的金屬物',1,0],
-  ['太陽餅禮盒','方盒、內有多塊有機物',0,0],['一捆充電線','纏成一團的金屬線',1,0],['玩具水槍','槍形塑膠物',0,0],
-  ['折疊傘','長條金屬骨架',1,0],['指甲剪','小型金屬片',1,0],['毛衣','一團布料',0,0],['金屬皮帶扣','扁平金屬塊',1,0]
+  ['吹風機','L 形、有握把的金屬物',1,1,['XX','X.']],['自拍棒','細長棒狀金屬',1,1,['XXX']],['嬰兒爽身粉','罐裝白色粉末',0,1,['X','X']],
+  ['鬧鐘','圓形、內有齒輪與電線',1,1,['XX','XX']],['一疊旅遊書','方形紙類堆疊',0,1,['XX','XX']],['行動電源','磚塊狀高密度電子物',1,1,['XX']],
+  ['洗髮精','瓶裝液體',0,1,['X','X']],['保溫瓶','圓柱形金屬容器',1,0,['X','X','X']],['電動刮鬍刀','手掌大的金屬物',1,0,['X','X']],
+  ['太陽餅禮盒','方盒、內有多塊有機物',0,0,['XXX','XXX']],['一捆充電線','纏成一團的金屬線',1,0,['XX']],['玩具水槍','槍形塑膠物',0,0,['XX','X.']],
+  ['折疊傘','長條金屬骨架',1,0,['XXX']],['指甲剪','小型金屬片',1,0,['X']],['毛衣','一團布料',0,0,['XX','XX']],['金屬皮帶扣','扁平金屬塊',1,0,['X']]
 ];
+// 違禁品的形狀都跟某件普通物品一模一樣
 const CONTRA=[
-  ['手槍','L 形、有握把的金屬物',1],['彈簧刀','細長棒狀金屬',1],['一罐白粉','罐裝白色粉末',0],
-  ['土製炸彈','圓形、內有齒輪與電線',1],['一疊偽鈔','方形紙類堆疊',0],['電擊棒','磚塊狀高密度電子物',1],['一瓶汽油','瓶裝液體',0]
+  ['手槍','L 形、有握把的金屬物',1,['XX','X.']],['彈簧刀','細長棒狀金屬',1,['XXX']],['一罐白粉','罐裝白色粉末',0,['X','X']],
+  ['土製炸彈','圓形、內有齒輪與電線',1,['XX','XX']],['一疊偽鈔','方形紙類堆疊',0,['XX','XX']],['電擊棒','磚塊狀高密度電子物',1,['XX']],['一瓶汽油','瓶裝液體',0,['X','X']]
 ];
 const TASK_GOOD=['讓海關親口說出「歡迎」','讓海關笑出聲','審問中自然提到三種食物','反問海關一個問題並得到回答','讓海關對你用一次金屬探測','讓海關重複一次你說過的話'];
 const TASK_BAD=['審問中說出「炸彈」兩個字而沒被追問','讓海關全程沒開你的行李箱','讓海關為了你回頭偷看螢幕一次','故意答錯一題個資而沒被拆穿','讓海關對你說「不好意思」','讓海關在你身上花不到 2 點行動點數'];
@@ -136,11 +138,33 @@ function nameVariant(name,used){let n;do{n=name.slice(0,-1)+pick(GIV2)}while(use
 function looksVariant(l){const o={...l};for(const k of shuffle(CATS).slice(0,2))o[k]=pick(FEAT[k].filter(v=>v!==l[k]));return o}
 const genId=name=>({name,age:22+rnd(47),job:pick(JOB),from:pick(FROM),purpose:pick(PURPOSE),days:2+rnd(13),stay:pick(STAY),companion:pick(COMP),pet:pick(PET)});
 const memoir=d=>`我叫${d.name}，今年 ${d.age} 歲，平常的工作是${d.job}。這趟是從${d.from}出發，這次我是${d.companion}來的，主要目的是${d.purpose}，預計停留 ${d.days} 天，會住在${d.stay}。`+(d.pet===PET[0]?'家裡沒養寵物，所以出門很放心。':`家裡${d.pet}，出門前託鄰居幫忙照顧。`);
+// 這件東西放在行李箱 (x,y)、轉 r 次，會不會出界或壓到別的東西
+function fitsBag(items,it,x,y,r){
+  const mine=cells(it.sh,r).map(([cx,cy])=>[x+cx,y+cy]);
+  if(mine.some(([cx,cy])=>cx<0||cy<0||cx>=GRID.w||cy>=GRID.h))return false;
+  const used=new Set();
+  for(const o of items)if(o!==it&&o.loc==='bag')for(const [cx,cy] of cells(o.sh,o.r))used.add((o.gx+cx)+','+(o.gy+cy));
+  return !mine.some(([cx,cy])=>used.has(cx+','+cy));
+}
+// 開局先幫玩家擺一個合法的位置（大的先進行李箱，放不下的小東西藏身上）；擺不出來回傳 false
+function autoPack(items){
+  const order=items.slice().sort((a,b)=>cells(b.sh,0).length-cells(a.sh,0).length),free=shuffle(SLOTS.map(s=>s.id));
+  for(const it of order){
+    let done=false;
+    for(let r=0;r<4&&!done;r++)for(let y=0;y<GRID.h&&!done;y++)for(let x=0;x<GRID.w&&!done;x++)
+      if(fitsBag(items,it,x,y,r)){Object.assign(it,{loc:'bag',gx:x,gy:y,r});done=true}
+    if(!done){if(cells(it.sh,0).length>BODY_MAX_CELLS||!free.length)return false;Object.assign(it,{loc:'body',slot:free.pop()})}
+  }
+  return true;
+}
 function genItems(bad){
-  let its;
-  if(bad){its=shuffle(ORD).slice(0,3).map(o=>({n:o[0],x:o[1],m:!!o[2],c:false}));const c=pick(CONTRA);its.push({n:c[0],x:c[1],m:!!c[2],c:true})}
-  else{const sus=pick(ORD.filter(o=>o[3]));its=[sus,...shuffle(ORD.filter(o=>o!==sus)).slice(0,3)].map(o=>({n:o[0],x:o[1],m:!!o[2],c:false}))}
-  return shuffle(its).map((it,i)=>({...it,loc:i<3?'bag':'body',seen:false}));
+  for(;;){
+    let its;
+    if(bad){its=shuffle(ORD).slice(0,3).map(o=>({n:o[0],x:o[1],m:!!o[2],c:false,sh:o[4]}));const c=pick(CONTRA);its.push({n:c[0],x:c[1],m:!!c[2],c:true,sh:c[3]})}
+    else{const sus=pick(ORD.filter(o=>o[3]));its=[sus,...shuffle(ORD.filter(o=>o!==sus)).slice(0,3)].map(o=>({n:o[0],x:o[1],m:!!o[2],c:false,sh:o[4]}))}
+    its=shuffle(its).map(it=>({...it,loc:'none',gx:0,gy:0,r:0,slot:null,seen:false}));
+    if(autoPack(its))return its;
+  }
 }
 
 function startGame(){
@@ -164,7 +188,7 @@ function startGame(){
       t={real:null,passName:genName(used),looks:genLooks()};
       G.wanted.push({name:nameVariant(t.passName,used),looks:looksVariant(t.looks),crime:pick(CRIME)});
     }
-    Object.assign(t,{id:genId(t.passName),items:genItems(bad),task:pick(bad?TASK_BAD:TASK_GOOD),taskDone:false,verdict:null,auto:false,opened:false});
+    Object.assign(t,{id:genId(t.passName),items:genItems(bad),task:pick(bad?TASK_BAD:TASK_GOOD),taskDone:false,verdict:null,auto:false,opened:false,scanned:{},taken:{}});
     G.trav[p]=t;
   }
   while(G.wanted.length<12)G.wanted.push({name:genName(used),looks:genLooks(),crime:pick(CRIME)});
@@ -230,8 +254,16 @@ function act(pid,m){
   case 'ready':if(G.phase==='prep'){G.ready[pid]=true;if(G.players.every(p=>G.ready[p.pid]))startInspect()}break;
   case 'pack':if(G.phase==='prep'&&r.role==='traveler'){
       const t=G.trav[pid],it=t.items[m.i];if(!it)break;
-      if(m.loc==='bag'&&t.items.filter(x=>x.loc==='bag').length>=3){note(pid,'行李箱最多放 3 件');break}
-      it.loc=m.loc==='bag'?'bag':'body';
+      if(m.loc==='bag'){
+        const x=m.x|0,y=m.y|0,rr=m.r&3;
+        if(!fitsBag(t.items,it,x,y,rr)){note(pid,'那裡放不進去');break}
+        Object.assign(it,{loc:'bag',gx:x,gy:y,r:rr,slot:null});
+      }else{
+        const sl=SLOTS.find(q=>q.id===m.slot);if(!sl)break;
+        if(cells(it.sh,0).length>BODY_MAX_CELLS){note(pid,'太大了，藏不到身上');break}
+        if(t.items.some(o=>o!==it&&o.loc==='body'&&o.slot===sl.id)){note(pid,`「${sl.label}」已經藏了東西`);break}
+        Object.assign(it,{loc:'body',slot:sl.id});
+      }
     }break;
   case 'disguise':if(G.phase==='prep'&&r.role==='traveler'&&r.bad){
       const t=G.trav[pid];if(m.k==='特徵'||!FEAT[m.k]||!FEAT[m.k].includes(m.v))break;
@@ -239,14 +271,19 @@ function act(pid,m){
       if(CATS.filter(k=>next[k]!==t.real.looks[k]).length>2){note(pid,'最多只能易容 2 類，先把別的改回原樣');break}
       t.looks=next;
     }break;
-  case 'metal':if(r&&r.role==='customs'&&ct){
-      G.clog.push(`🔍 金屬探測：身上有 ${ct.items.filter(i=>i.loc==='body'&&i.m).length} 件金屬物`);log('🔍 海關用金屬探測器掃了旅客');
+  case 'scan':if(r&&r.role==='customs'&&ct){
+      const sl=SLOTS.find(q=>q.id===m.slot);if(!sl||ct.scanned[sl.id])break;
+      const hit=ct.items.some(i=>i.loc==='body'&&i.slot===sl.id&&i.m&&!i.seen);
+      ct.scanned[sl.id]=hit?'beep':'clear';
+      log(`🔍 海關掃描「${sl.label}」：${hit?'嗶嗶！':'沒反應'}`);G.clog.push(`🔍 掃描「${sl.label}」：${hit?'嗶嗶！有金屬':'沒反應'}`);
     }break;
   case 'frisk':if(r&&r.role==='customs'&&ct){
+      const sl=SLOTS.find(q=>q.id===m.slot);if(!sl||ct.taken[sl.id]!=null)break;
       if(G.ap<2){note(pid,'行動點數不夠');break}G.ap-=2;
-      const left=ct.items.filter(i=>i.loc==='body'&&!i.seen);
-      if(left.length){const it=pick(left);it.seen=true;G.clog.push(`✋ 從身上取出：${it.n}`)}else G.clog.push('✋ 身上已經沒有其他東西了');
-      log('✋ 海關要求旅客取出身上的東西（−2）');
+      const it=ct.items.find(i=>i.loc==='body'&&i.slot===sl.id);
+      ct.taken[sl.id]=it?it.n:'';if(it)it.seen=true;
+      G.clog.push(`✋ 從「${sl.label}」取出：${it?it.n:'空的，什麼都沒有'}`);
+      log(`✋ 海關要旅客掏出「${sl.label}」的東西（−2）`);
     }break;
   case 'open':if(r&&r.role==='customs'&&ct){
       if(!ct.opened){if(G.ap<2){note(pid,'行動點數不夠');break}G.ap-=2;ct.opened=true;log('🧳 海關打開了行李箱（−2）')}
@@ -296,15 +333,16 @@ function viewFor(pid){
     const looking=now<G.lookUntil;
     Object.assign(v,{ap:G.ap,passport,chat,clog:G.clog.slice(-30).reverse(),looking,screen:looking?sig:'',
       blur:now<G.blurUntil?Math.min(2+G.looks*2,14):0,opened:!!(ct&&ct.opened),
+      metal:{active:!!ct,key:'t'+G.cur,slots:SLOTS,scanned:ct?ct.scanned:{},taken:ct?ct.taken:{},ap:G.ap,passport:ct?{name:ct.passName,looks:ct.looks}:null},
       wanted:G.phase==='prep'||now<G.wantedUntil?G.wanted:null,wantedRemain:G.phase==='inspect'?Math.max(0,G.wantedUntil-now):null});
   }else if(r.role==='backend'){
     Object.assign(v,{passport,chat,lookAlert:now<G.lookUntil,looks:G.looks,sigNow:sig,sigCd:Math.max(0,(G.sigCd[pid]||0)-now),
       travs:G.queue.map((q,i)=>{const t=G.trav[q];return {player:pname(q),id:t.id,verdict:t.verdict,cur:i===G.cur,
-        xray:G.phase==='inspect'?t.items.filter(x=>x.loc==='bag').map(x=>x.x):null}})});
+        xray:G.phase==='inspect'?t.items.filter(x=>x.loc==='bag').map(x=>({sh:x.sh,gx:x.gx,gy:x.gy,r:x.r,x:x.x,m:x.m})):null}})});
   }else{
     const t=G.trav[pid],idx=G.queue.indexOf(pid),at=pid===cp;
     const sheetOn=G.phase==='prep'||idx>G.cur||(at&&now<G.peekUntil);
-    Object.assign(v,{passport:{name:t.passName,looks:t.looks},real:t.real,items:t.items.map(i=>({n:i.n,x:i.x,m:i.m,c:i.c,loc:i.loc})),
+    Object.assign(v,{passport:{name:t.passName,looks:t.looks},real:t.real,items:t.items.map((i,k)=>({i:k,n:i.n,x:i.x,m:i.m,c:i.c,sh:i.sh,loc:i.loc,gx:i.gx,gy:i.gy,r:i.r,slot:i.slot})),
       task:t.task,taskDone:t.taskDone,at,pos:idx-G.cur,myVerdict:t.verdict,screen:at?sig:'',
       memoir:r.bad?null:memoir(t.id),sheet:r.bad&&sheetOn?t.id:null,peek:r.bad&&at&&now<G.peekUntil});
   }
@@ -396,61 +434,6 @@ function leave(msg){fatal=msg;V=null;room='';status='';delete sessionStorage.cs_
 const fmt=ms=>{const s=Math.ceil(ms/1000);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
 const looksHtml=l=>CATS.map(k=>`<span class="chip">${k}：${esc(l[k])}</span>`).join('');
 const idList=d=>'<ul>'+Object.keys(ID_LABEL).map(k=>`<li>${ID_LABEL[k]}：${esc(d[k])}${k==='age'?' 歲':k==='days'?' 天':''}</li>`).join('')+'</ul>';
-// 依六類特徵畫出原創的膠囊人大頭照（護照與通緝令共用，同樣特徵一定畫出同一張臉）
-function face(l,size=88,bg='#cfd8e6'){
-  const SK='#f3c9a0',HR='#3b2a20',o=[];
-  const hair=l.髮型,top=l.上衣,hat=l.帽子,gl=l.眼鏡,bd=l.鬍子,mk=l.特徵;
-  o.push(`<rect width="100" height="120" rx="10" fill="${bg}"/>`);
-  // 後層：帽T 的帽兜、長髮、馬尾
-  if(top==='黑色帽T')o.push('<path d="M17,96 Q12,40 32,28 L68,28 Q88,40 83,96Z" fill="#1c1c20"/>');
-  if(hair==='長髮')o.push(`<path d="M19,40 Q19,14 50,14 Q81,14 81,40 L84,94 L16,94Z" fill="${HR}"/>`);
-  if(hair==='馬尾')o.push(`<ellipse cx="85" cy="54" rx="7" ry="18" transform="rotate(-14 85 54)" fill="${HR}"/><rect x="76" y="34" width="8" height="5" rx="2" fill="#e04b6a"/>`);
-  // 身體
-  o.push(`<rect x="24" y="16" width="52" height="120" rx="26" fill="${SK}"/>`);
-  // 上衣
-  const C={白襯衫:'#f6f6f6',花襯衫:'#19a7a0',黑色帽T:'#2a2a2e',西裝:'#1f2f55',條紋衫:'#ffffff',皮夾克:'#6b3e1e'}[top];
-  o.push(`<rect x="24" y="84" width="52" height="40" fill="${C}"/>`);
-  if(top==='白襯衫')o.push('<path d="M50,84 L39,84 L45,95Z M50,84 L61,84 L55,95Z" fill="#fff" stroke="#b9bfc9"/><circle cx="50" cy="102" r="1.6" fill="#b9bfc9"/><circle cx="50" cy="112" r="1.6" fill="#b9bfc9"/>');
-  if(top==='花襯衫')o.push('<path d="M50,84 L40,84 L46,94Z M50,84 L60,84 L54,94Z" fill="#12807b"/>'+[[32,94,'#ffd84d'],[66,92,'#ff8fb1'],[40,108,'#fff'],[60,106,'#ffd84d'],[30,114,'#ff8fb1'],[70,114,'#fff'],[50,116,'#ff8fb1']].map(f=>`<circle cx="${f[0]}" cy="${f[1]}" r="3.4" fill="${f[2]}"/><circle cx="${f[0]}" cy="${f[1]}" r="1.2" fill="#e0662b"/>`).join(''));
-  if(top==='黑色帽T')o.push('<path d="M45,86 L45,104 M55,86 L55,104" stroke="#ddd" stroke-width="1.6"/><path d="M36,112 L64,112" stroke="#3d3d44" stroke-width="2"/>');
-  if(top==='西裝')o.push('<path d="M41,84 L50,104 L59,84Z" fill="#fff"/><path d="M48,86 L52,86 L53.5,104 L50,109 L46.5,104Z" fill="#c8323c"/><path d="M41,84 L50,104 M59,84 L50,104" stroke="#111a33" stroke-width="2" fill="none"/>');
-  if(top==='條紋衫')o.push([88,96,104,112].map(y=>`<rect x="24" y="${y}" width="52" height="4" fill="#2f6fd0"/>`).join(''));
-  if(top==='皮夾克')o.push('<path d="M50,92 L39,84 L35,98Z M50,92 L61,84 L65,98Z" fill="#4c2a12"/><path d="M50,92 L50,124" stroke="#c9c9c9" stroke-width="1.6"/>');
-  // 臉
-  o.push('<path d="M34,44 L46,43 M54,43 L66,44" stroke="#3b2a20" stroke-width="2.6" stroke-linecap="round"/>');
-  o.push('<circle cx="40" cy="53" r="6" fill="#fff"/><circle cx="60" cy="53" r="6" fill="#fff"/><circle cx="41" cy="54" r="2.6" fill="#222"/><circle cx="61" cy="54" r="2.6" fill="#222"/>');
-  o.push('<ellipse cx="50" cy="61" rx="4" ry="3" fill="#e2a37c"/>');
-  if(mk==='滿臉雀斑')o.push([[31,61],[35,64],[38,60],[62,60],[65,64],[69,61],[34,58],[66,58]].map(d=>`<circle cx="${d[0]}" cy="${d[1]}" r="1.1" fill="#a8663a"/>`).join(''));
-  if(mk==='左臉有痣')o.push('<circle cx="67" cy="64" r="2.2" fill="#3b2a20"/>');
-  if(mk==='眉毛有疤')o.push('<path d="M57,38 L63,49" stroke="#f7e3d0" stroke-width="3"/><path d="M57,38 L63,49" stroke="#c0564b" stroke-width="1.2"/>');
-  // 鬍子
-  if(bd==='落腮鬍')o.push(`<path d="M25,56 Q24,86 50,89 Q76,86 75,56 Q71,66 62,66 Q50,62 38,66 Q29,66 25,56Z" fill="${HR}"/>`);
-  if(bd==='山羊鬍')o.push(`<path d="M44,75 Q50,90 56,75 Q50,78 44,75Z" fill="${HR}"/>`);
-  if(bd==='八字鬍')o.push(`<path d="M50,64 Q42,62 35,69 Q44,71 50,67 Q56,71 65,69 Q58,62 50,64Z" fill="${HR}"/>`);
-  // 嘴
-  const mc=bd==='落腮鬍'?'#f0b8a0':'#7a2e2e';
-  if(mk==='鑲金牙')o.push('<path d="M41,70 Q50,81 59,70Z" fill="#fff" stroke="#7a2e2e"/><rect x="51" y="70.5" width="4" height="4.2" fill="#f2b705" stroke="#a87b00" stroke-width=".5"/>');
-  else if(mk==='缺一顆門牙')o.push('<path d="M41,70 Q50,81 59,70Z" fill="#fff" stroke="#7a2e2e"/><rect x="48" y="70.5" width="4" height="4.6" fill="#3a1414"/>');
-  else o.push(`<path d="M43,71 Q50,76 57,71" stroke="${mc}" stroke-width="2" fill="none" stroke-linecap="round"/>`);
-  if(mk==='有酒窩')o.push(`<path d="M38,68 q-3,4 0,8 M62,68 q3,4 0,8" stroke="${bd==='落腮鬍'?'#f0b8a0':'#c98a63'}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`);
-  if(mk==='脖子有刺青')o.push('<path d="M31,74 l1.6,3.4 3.6,.4 -2.7,2.5 .8,3.6 -3.3,-1.9 -3.3,1.9 .8,-3.6 -2.7,-2.5 3.6,-.4z" fill="#2456c9" stroke="#fff" stroke-width=".6"/>');
-  // 眼鏡
-  if(gl==='圓框眼鏡')o.push('<circle cx="40" cy="53" r="8.5" fill="none" stroke="#222" stroke-width="2"/><circle cx="60" cy="53" r="8.5" fill="none" stroke="#222" stroke-width="2"/><path d="M48.5,53 L51.5,53" stroke="#222" stroke-width="2"/>');
-  if(gl==='方框眼鏡')o.push('<rect x="31" y="46" width="17" height="13" rx="1.5" fill="none" stroke="#222" stroke-width="2"/><rect x="52" y="46" width="17" height="13" rx="1.5" fill="none" stroke="#222" stroke-width="2"/><path d="M48,52 L52,52" stroke="#222" stroke-width="2"/>');
-  if(gl==='墨鏡')o.push('<rect x="30" y="46" width="18" height="12" rx="4" fill="#111"/><rect x="52" y="46" width="18" height="12" rx="4" fill="#111"/><path d="M48,50 L52,50 M30,50 L24,48 M70,50 L76,48" stroke="#111" stroke-width="2"/><path d="M33,49 l5,0" stroke="#666" stroke-width="1.4"/>');
-  // 前層頭髮
-  if(hair==='短髮'||hair==='長髮'||hair==='馬尾')o.push(`<path d="M24,42 A26,26 0 0 1 76,42 L76,38 Q50,25 24,38Z" fill="${HR}"/>`);
-  if(hair==='平頭')o.push(`<path d="M24,40 L24,22 Q24,11 35,11 L65,11 Q76,11 76,22 L76,40 Q50,31 24,40Z" fill="${HR}"/>`);
-  if(hair==='捲髮')o.push([[27,37],[31,26],[40,18],[50,15],[60,18],[69,26],[73,37]].map(c=>`<circle cx="${c[0]}" cy="${c[1]}" r="8.5" fill="${HR}"/>`).join(''));
-  if(hair==='光頭'&&hat==='沒戴帽子')o.push('<ellipse cx="41" cy="26" rx="7" ry="3" transform="rotate(-25 41 26)" fill="#fff" opacity=".55"/>');
-  // 帽子
-  if(hat==='棒球帽')o.push('<path d="M23,36 A27,25 0 0 1 77,36Z" fill="#d23b3b"/><path d="M68,31 L96,36 Q97,41 92,41 L68,37Z" fill="#a82a2a"/><circle cx="50" cy="12" r="2.4" fill="#a82a2a"/>');
-  if(hat==='漁夫帽')o.push('<path d="M31,32 L35,10 Q50,6 65,10 L69,32Z" fill="#c9b27a"/><path d="M12,41 L27,29 L73,29 L88,41 Q50,33 12,41Z" fill="#b39a5e"/>');
-  if(hat==='毛帽')o.push('<path d="M23,34 A27,27 0 0 1 77,34Z" fill="#2f6fd0"/><rect x="21" y="29" width="58" height="10" rx="5" fill="#7fb0f5"/><circle cx="50" cy="7" r="6.5" fill="#fff"/>');
-  if(hat==='草帽')o.push('<path d="M32,32 L35,13 Q50,7 65,13 L68,32Z" fill="#f1d57a"/><ellipse cx="50" cy="33" rx="45" ry="7" fill="#e8c65a"/><path d="M32.5,29 L67.5,29 L67,24 L33,24Z" fill="#b5473c"/>');
-  if(mk==='戴耳環')o.push('<circle cx="23" cy="64" r="4.5" fill="none" stroke="#f2b705" stroke-width="2.4"/>');
-  return `<svg class="face" width="${size}" height="${Math.round(size*1.2)}" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">${o.join('')}</svg>`;
-}
 const lk=(l,size=88)=>`<div class="pp">${face(l,size)}<div>${looksHtml(l)}</div></div>`;
 const wantedTable=w=>`<div class="wgrid">`+w.map(x=>`<div class="wcard"><div class="wtitle">WANTED 通緝</div>${face(x.looks,96,'#e9dcc0')}<b>${esc(x.name)}</b><div class="wfeat">${CATS.map(c=>esc(x.looks[c])).join('・')}</div><div class="wcrime">${x.crime}</div></div>`).join('')+'</div>';
 const logCard=v=>`<div class="card"><h2>📜 現場動態（所有人可見）</h2><div class="log">${v.log.map(l=>`<div>${esc(l)}</div>`).join('')}</div></div>`;
@@ -487,7 +470,7 @@ function fx(prev,v){
   for(const l of fresh){
     if(l.startsWith('🛫'))play('next');
     else if(l.startsWith('➡️'))play('next',judged?1700:0);
-    else if(l.startsWith('🔍')){show('<img class="flash" src="art/wand.jpg" alt="">',1400);play('beep')}
+    else if(l.startsWith('🔍')){if(v.role!=='customs'&&l.includes('嗶')){show('<img class="flash" src="art/wand.jpg" alt="">',1400);play('beep')}}
     else if(l.startsWith('✋')||l.startsWith('🧳')||l.startsWith('📋'))play('deduct');
     else if(l.startsWith('👀'))play('look');
     else if(l.startsWith('🙋'))play('pop');
@@ -511,12 +494,12 @@ function guideHtml(v){
   }else if(v.phase==='prep'){
     if(v.role==='customs')me=['把下面的通緝名單背起來，重點是「姓名」和「特徵」那欄（通緝犯改不了特徵）','背好就按「我準備好了」。之後要重看得花 1 點'];
     else if(v.role==='backend')me=['讀每位旅客的條列資料，等一下要拿來核對他們講的話',v.bad?'你是內鬼：先想好怎麼讓海關放過壞旅客，但別被海關看穿':'你是好人：等一下如實回報，幫海關判對','看完就按「我準備好了」'];
-    else if(v.bad)me=['易容：最多改 2 類，讓自己跟通緝令長得不一樣','把假身分小抄背起來，輪到你時會被收走','藏違禁品：放行李箱後台看得到形狀；藏身上的話金屬探測會響、也可能被取出','看一下專屬任務，然後按「我準備好了」'];
-    else me=['讀一下回憶錄（整局都看得到，不用背）','決定哪些東西放行李箱、哪些帶身上（行李箱最多 3 件）','看一下專屬任務，然後按「我準備好了」'];
+    else if(v.bad)me=['在易容鏡前換造型：最多改 2 類，讓自己跟通緝令長得不一樣','把假身分小抄背起來，輪到你時會被收走','用易容鏡換造型、把行李拖進行李箱或藏到身上：行李箱後台看得到形狀，藏身上的金屬會被掃到','看一下專屬任務，然後按「我準備好了」'];
+    else me=['讀一下回憶錄（整局都看得到，不用背）','把行李拖進行李箱，放不下的小東西藏到身上（超過 3 格的藏不了）','看一下專屬任務，然後按「我準備好了」'];
     others='同一時間：海關在背通緝名單、後台在讀旅客資料、旅客在裝行李（壞旅客還要易容和背小抄）。';
   }else if(v.phase==='inspect'){
     const cur=v.queue.find(q=>q.cur),who=cur?`${esc(cur.pass)}（${esc(cur.player)}）`:'';
-    if(v.role==='customs')me=[`用語音審問 ${who}：姓名、職業、從哪來、來做什麼、住哪…`,'看「耳機」裡後台回報旅客答得對不對（兩位後台有一個是內鬼）','比對護照長相跟你記得的通緝名單，想不起來可以花 1 點重看',`需要就檢查：金屬探測免費，取出／開行李各 2 點（整局共用，剩 ${v.ap} 點）`,'倒數結束前按「放行」或「抓人」，超時系統會亂判'];
+    if(v.role==='customs')me=[`用語音審問 ${who}：姓名、職業、從哪來、來做什麼、住哪…`,'看「耳機」裡後台回報旅客答得對不對（兩位後台有一個是內鬼）','比對護照長相跟你記得的通緝名單，想不起來可以花 1 點重看',`拿探測棒在旅客身上按住掃描（免費但花時間），嗶了可以花 2 點取出那個位置；開行李也是 2 點（整局共用，剩 ${v.ap} 點）`,'倒數結束前按「放行」或「抓人」，超時系統會亂判'];
     else if(v.role==='backend')me=[`聽 ${who} 回答海關的問題，對照下面那張條列資料`,v.bad?'打字回報給海關——你是內鬼，可以說謊幫壞旅客過關，但別太明顯':'打字告訴海關答對還是答錯',v.bad?'看 X 光猜誰是壞旅客；可疑形狀要不要講、怎麼講由你決定':'看 X 光，有可疑形狀就提醒海關開行李','想偷偷傳訊息可以打暗號到螢幕（旅客看得到，海關要回頭才看得到）'];
     else if(v.myVerdict)me=['你已經判完了，可以旁聽後面的審問','任務如果完成了，記得按「我完成任務了」'];
     else if(v.at)me=v.bad?['用語音回答海關，小抄已經被收走，靠記憶講','海關一回頭就趕快偷看小抄（只有 4 秒）','留意背後螢幕的暗號，也可以比動作','想辦法完成專屬任務，完成就按鈕']:['用語音回答海關，照回憶錄講就好','想辦法完成專屬任務，完成就按鈕（要出境＋完成任務才算贏）','留意背後螢幕的暗號，也可以比動作'];
@@ -534,21 +517,47 @@ function setHtml(el,html){
   const a=document.activeElement,id=a&&a.id,keep={};let ss=null;
   try{ss=a&&a.selectionStart}catch(e){}
   el.querySelectorAll('[data-keep]').forEach(i=>keep[i.id]=i.value);
+  const live={};el.querySelectorAll('[data-mini]').forEach(n=>{if(n._mini)live[n.dataset.mini]=n});
   el.innerHTML=html;el._h=html;
+  el.querySelectorAll('[data-mini]').forEach(n=>{const o=live[n.dataset.mini];if(o)n.replaceWith(o)});
   for(const k in keep){const i=document.getElementById(k);if(i)i.value=keep[k]}
   if(id){const n=document.getElementById(id);if(n&&el.contains(n)){n.focus();try{n.setSelectionRange(ss,ss)}catch(e){}}}
 }
 
 function render(){
   const app=document.getElementById('app');
-  if(!V){setHtml(app,homeHtml());return}
+  if(!V){setHtml(app,homeHtml());syncMini(null);return}
   const v=V,phaseName={lobby:'大廳',prep:'準備時間',inspect:'通關中',end:'結算'}[v.phase];
   let h=`<div class="bar"><span>房號 <b class="big">${v.room}</b></span><span>你：<b>${esc(v.name)}</b></span>`+
     (v.role?`<span>角色：<b>${ROLE_NAME[v.role]}</b> ${side(v)}</span>`:'')+`<span>${phaseName}</span>`+
     (status?`<span class="warn">${status}</span>`:'')+btn(muted?'🔇':'🔊',{local:'mute'},'sm')+`<span class="timer" data-tm="main"></span></div>`;
   if(v.note)h+=`<div class="note">⚠️ ${esc(v.note)}</div>`;
   h+='<div class="grid">'+sceneHtml(v)+guideHtml(v)+({lobby:lobbyHtml,prep:prepHtml,inspect:inspectHtml,end:endHtml}[v.phase])(v)+'</div>';
-  setHtml(app,h);tickTimers();
+  setHtml(app,h);syncMini(v);tickTimers();
+}
+// ───────── 三個小遊戲（mini/*.js）：易容、裝行李、金屬探測 ─────────
+const MINI={};
+const miniApi={send:m=>setTimeout(()=>send(m),0),play:(n,d)=>play(n,d),esc,face};
+function miniState(v){
+  const st={};
+  if(v.role==='traveler'&&(v.phase==='prep'||v.phase==='inspect')){
+    st.pack={editable:v.phase==='prep',grid:GRID,slots:SLOTS,maxBodyCells:BODY_MAX_CELLS,items:v.items};
+    if(v.bad&&v.phase==='prep')st.disguise={editable:true,max:2,locked:['特徵'],realName:v.real.name,passName:v.passport.name,real:v.real.looks,looks:v.passport.looks};
+  }
+  if(v.role==='customs'&&v.phase==='inspect')st.metal=v.metal;
+  return st;
+}
+function syncMini(v){
+  const st=v?miniState(v):{};
+  for(const name of ['disguise','pack','metal']){
+    const node=document.querySelector(`#app [data-mini="${name}"]`),mod=window.Mini&&Mini[name],cur=MINI[name];
+    if(!mod)continue;
+    if(!node||!st[name]){if(cur){try{mod.unmount()}catch(e){console.error(e)}delete MINI[name]}continue}
+    try{
+      if(!cur||cur.root!==node){if(cur)mod.unmount();node._mini=true;mod.mount(node,miniApi);MINI[name]={root:node}}
+      mod.update(st[name]);
+    }catch(e){console.error(e)}
+  }
 }
 function tickTimers(){
   if(!V)return;const el=performance.now()-vAt;
@@ -581,11 +590,13 @@ function lobbyHtml(v){
     <p>${split}</p>${v.isHost?btn('開始遊戲',{a:'start'},'go',n<3):'<p class="dim">等房主開始…</p>'}</div>`;
 }
 
-function itemsHtml(v,edit){
-  const bag=v.items.filter(i=>i.loc==='bag').length;
-  const row=(it,i)=>`<div>${it.c?'<span class="bad">【違禁品】</span>':''}${esc(it.n)} <span class="dim">（X 光：${esc(it.x)}${it.m?'・金屬':''}）</span>${edit?btn(it.loc==='bag'?'→ 改藏身上':'→ 放行李箱',{a:'pack',i,loc:it.loc==='bag'?'body':'bag'},'sm'):''}</div>`;
-  const part=loc=>v.items.map((it,i)=>it.loc===loc?row(it,i):'').join('')||'<div class="dim">（空）</div>';
-  return `<h3>🧳 行李箱（${bag}/3）— 後台 X 光看得到形狀</h3>${part('bag')}<h3>🧥 藏在身上 — X 光照不到，金屬探測會響</h3>${part('body')}`;
+const slotLabel=id=>(SLOTS.find(q=>q.id===id)||{label:'身上'}).label;
+// 後台看到的 X 光：只有形狀和材質（藍＝金屬、橘＝非金屬），沒有名稱
+function xrayHtml(items){
+  const U=34;
+  const blocks=items.map((it,k)=>cells(it.sh,it.r).map(([cx,cy],j)=>`<div class="xc ${it.m?'xm':'xo'}" style="left:${(it.gx+cx)*U}px;top:${(it.gy+cy)*U}px">${j?'':k+1}</div>`).join('')).join('');
+  return `<div class="xwrap"><div class="xgrid" style="width:${GRID.w*U}px;height:${GRID.h*U}px">${blocks}</div>
+    <ol class="xlist">${items.map(it=>`<li><span class="${it.m?'xtm':'xto'}">${it.m?'金屬':'非金屬'}</span> ${esc(it.x)}</li>`).join('')||'<li class="dim">空的</li>'}</ol></div>`;
 }
 function travelerIdHtml(v){
   if(!v.bad)return `<h3>📖 你的回憶錄（全程可看）</h3><div class="memo">${esc(v.memoir)}</div>`;
@@ -604,13 +615,10 @@ function prepHtml(v){
   }else{
     h+=`<div class="card"><h2>🪪 你是${v.bad?'<span class="bad">壞旅客（通緝犯）</span>':'<span class="good">好旅客</span>'}</h2>
       <p>護照姓名：<b class="big">${esc(v.passport.name)}</b></p>${lk(v.passport.looks)}`;
-    if(v.bad){
-      const changed=CATS.filter(k=>v.passport.looks[k]!==v.real.looks[k]).length;
-      h+=`<h3>🚨 通緝令上的你：本名 ${esc(v.real.name)}</h3>${lk(v.real.looks)}
-        <h3>🎭 易容（已改 ${changed}/2 類，「特徵」改不了）</h3><div class="row">${CATS.filter(k=>k!=='特徵').map(k=>`<label>${k} <select id="dg_${k}" data-c='${JSON.stringify({a:'disguise',k})}'>${FEAT[k].map(o=>`<option${o===v.passport.looks[k]?' selected':''}>${o}</option>`).join('')}</select></label>`).join('')}</div>`;
-    }
-    h+=travelerIdHtml(v)+`<h3>🎯 專屬任務</h3><div class="memo">${esc(v.task)}</div></div>
-      <div class="card"><h2>🎒 裝行李</h2>${itemsHtml(v,true)}${readyBtn(v)}</div>`;
+    if(v.bad)h+=`<h3>🚨 通緝令上的你：本名 ${esc(v.real.name)}</h3>${lk(v.real.looks)}`;
+    h+=travelerIdHtml(v)+`<h3>🎯 專屬任務</h3><div class="memo">${esc(v.task)}</div>${readyBtn(v)}</div>`;
+    if(v.bad)h+=`<div class="card wide"><h2>🎭 易容鏡 — 最多改 2 類，「特徵」改不了</h2><div data-mini="disguise"></div></div>`;
+    h+=`<div class="card wide"><h2>🎒 裝行李 — 拖進行李箱或藏到身上</h2><p class="dim">行李箱裡的東西後台 X 光看得到形狀；藏身上的 X 光照不到，但金屬會被探測棒掃到，海關也可以花點數叫你掏出來。超過 3 格的東西藏不了身上。</p><div data-mini="pack"></div></div>`;
   }
   return h+logCard(v);
 }
@@ -623,9 +631,9 @@ function inspectHtml(v){
     if(v.looking)h+=`<div class="card wide"><h2>👀 你回頭看了背後的螢幕</h2><div class="screen">${v.screen||'<span class="dim" style="font-size:16px;letter-spacing:0">（螢幕上現在沒東西）</span>'}</div></div>`;
     h+=`<div class="card"${b}><h2>🛂 櫃台前的旅客</h2><p>護照姓名：<b class="big">${esc(pp.name)}</b> <span class="dim">（玩家 ${esc(pp.player)}）</span></p>${lk(pp.looks)}
       <h3>行動點數：<b class="big warn">${v.ap}</b></h3>
-      <div>${btn('🔍 金屬探測（免費）',{a:'metal'})}${btn('✋ 取出身上物品（−2）',{a:'frisk'},'',v.ap<2)}${btn(v.opened?'🧳 再看一次行李箱':'🧳 開行李箱（−2）',{a:'open'},'',!v.opened&&v.ap<2)}</div>
-      <div>${btn('📋 重看通緝名單（−1，15 秒）',{a:'wanted'},'',v.ap<1||!!v.wanted)}${btn('👀 回頭偷看螢幕',{a:'look'},'',v.looking)}</div>
+      <div>${btn(v.opened?'🧳 再看一次行李箱':'🧳 開行李箱（−2）',{a:'open'},'',!v.opened&&v.ap<2)}${btn('📋 重看通緝名單（−1，15 秒）',{a:'wanted'},'',v.ap<1||!!v.wanted)}${btn('👀 回頭偷看螢幕',{a:'look'},'',v.looking)}</div>
       <h3>下判</h3><div>${btn('✅ 放行',{a:'verdict',v:'pass'},'go')}${btn('🚨 抓人',{a:'verdict',v:'arrest'},'no')}</div></div>
+      <div class="card"${b}><h2>🔍 金屬探測 — 按住掃描</h2><div data-mini="metal"></div></div>
       <div class="card"${b}><h2>🗒️ 檢查結果（只有你看得到）</h2><div class="log">${v.clog.map(l=>`<div>${esc(l)}</div>`).join('')}</div>
       <h2 style="margin-top:12px">🎧 耳機（兩位後台，其中一個是內鬼）</h2>${chatLog(v)}</div>`;
     if(v.wanted)h+=`<div class="card wide"${b}><h2>📋 通緝名單（剩 <span data-tm="wantedRemain"></span> 秒）</h2>${wantedTable(v.wanted)}</div>`;
@@ -640,7 +648,7 @@ function inspectHtml(v){
       <p>櫃台護照：<b>${esc(pp.name)}</b></p>${lk(pp.looks)}
       <div class="hero thin" style="background-image:url(art/xray.jpg);background-position:center 45%;margin-top:10px"><div class="cap"><b style="font-size:18px">X 光機</b>只看得到形狀，藏身上的照不到</div></div>
       ${v.travs.map(t=>`<div class="card" style="margin-top:8px${t.cur?';border-color:var(--warn)':''}"><b>${esc(t.id.name)}</b> <span class="dim">（玩家 ${esc(t.player)}）${t.cur?'← 櫃台':t.verdict?'（已判）':''}</span>${idList(t.id)}
-        <h3>X 光（行李箱 ${t.xray.length} 件）</h3><ul>${t.xray.map(x=>`<li>${esc(x)}</li>`).join('')||'<li class="dim">空的</li>'}</ul></div>`).join('')}</div>`;
+        <h3>X 光（行李箱 ${t.xray.length} 件）</h3>${xrayHtml(t.xray)}</div>`).join('')}</div>`;
   }else{
     const st=v.myVerdict?(v.myVerdict==='pass'?'<span class="good">✅ 你已被放行（出境）</span>':'<span class="bad">🚨 你被抓了</span>'):v.at?'<span class="warn">輪到你了！你正在櫃台前接受審問</span>':v.pos<=1?'排隊中，下一個就是你。可以先聽別人怎麼被問。':`排隊中，前面還有 ${v.pos-1} 人。可以先聽別人怎麼被問。`;
     h+=`<div class="card"><h2>🪪 ${v.bad?'<span class="bad">壞旅客（通緝犯）</span>':'<span class="good">好旅客</span>'}</h2><p class="big">${st}</p>
@@ -650,7 +658,7 @@ function inspectHtml(v){
       <div class="card">`;
     if(v.at)h+=`<h2>📺 海關背後的螢幕</h2><div class="screen">${v.screen||'<span class="dim" style="font-size:16px;letter-spacing:0">（螢幕空白）</span>'}</div>
       <h3>🙋 比動作（所有人都看得到）</h3><div>${GESTURE.map(g=>btn(g,{a:'gesture',g},'sm')).join('')}</div>`;
-    h+=`<h2${v.at?' style="margin-top:12px"':''}>🎒 你的行李</h2>${itemsHtml(v,false)}</div>`;
+    h+=`<h2${v.at?' style="margin-top:12px"':''}>🎒 你的行李</h2><div data-mini="pack"></div></div>`;
   }
   return h+logCard(v);
 }
@@ -664,7 +672,7 @@ function endHtml(v){
     <p>判決：${t.verdict==='pass'?'✅ 放行':'🚨 抓人'}${t.auto?'（超時隨機）':''}　任務：${esc(t.task)} → ${t.taskDone?'<span class="good">完成</span>':'<span class="dim">未完成</span>'}</p>
     ${t.real?`<p>本名 <b>${esc(t.real.name)}</b>，易容了：${CATS.filter(k=>t.looks[k]!==t.real.looks[k]).map(k=>`${k}（${esc(t.real.looks[k])}→${esc(t.looks[k])}）`).join('、')||'完全沒易容'}</p>`:''}
     ${lk(t.looks)}${idList(t.id)}
-    <p>行李箱：${t.items.filter(i=>i.loc==='bag').map(i=>(i.c?'【違禁品】':'')+esc(i.n)).join('、')||'空'}<br>身上：${t.items.filter(i=>i.loc==='body').map(i=>(i.c?'【違禁品】':'')+esc(i.n)).join('、')||'空'}</p></div>`).join('')}
+    <p>行李箱：${t.items.filter(i=>i.loc==='bag').map(i=>(i.c?'【違禁品】':'')+esc(i.n)).join('、')||'空'}<br>身上：${t.items.filter(i=>i.loc==='body').map(i=>`${slotLabel(i.slot)}＝${i.c?'【違禁品】':''}${esc(i.n)}`).join('、')||'空'}</p></div>`).join('')}
   <div class="card wide"><h2>📋 通緝名單</h2>${wantedTable(e.wanted)}</div>`+logCard(v);
 }
 
