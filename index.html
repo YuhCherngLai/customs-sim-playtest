@@ -69,7 +69,7 @@ ul,ol{margin:4px 0;padding-left:22px}
 <ul>
 <li><b>語音</b>：大家開 Discord。海關和旅客用講的；<b>後台不要對海關開口</b>，一律用畫面上的「耳機」打字（旅客看不到）。</li>
 <li><b>海關</b>：不知道任何人的陣營。準備時間背通緝名單，之後重看要花 1 點。每位旅客限時下判：放行或抓人，超時系統隨機判。行動點數整局共用。</li>
-<li><b>後台</b>（一正一反）：看得到所有旅客的條列資料與行李箱 X 光（只有形狀，藏身上的照不到）。不知道誰是壞旅客，自己猜。可打暗號到海關背後的螢幕（3 秒）。</li>
+<li><b>後台</b>（一正一反）：看得到所有旅客的條列資料與行李箱 X 光（只有形狀，藏身上的照不到）。<b>壞後台一開始就知道每位旅客的身分，好後台不知道</b>、只能自己猜。可打暗號到海關背後的螢幕（3 秒）。</li>
 <li><b>行李與搜身</b>：行李箱是 4×3 格，放得下才算；超過 3 格的東西藏不了身上。身上有 6 個位置，海關用探測棒按住掃描（金屬才會嗶），花 2 點可以叫旅客掏出指定位置。</li>
 <li><b>好旅客</b>：全程拿著 100 字回憶錄。<b>壞旅客＝通緝犯</b>：護照是假名，最多易容 2 類（「特徵」改不了），小抄輪到你時會被收走。</li>
 <li><b>回頭偷看</b>：海關可回頭看螢幕暗號；後台會被通知、櫃台前的壞旅客可趁機偷看小抄 4 秒、海關畫面會糊 3 秒，回頭越多越糊。</li>
@@ -337,7 +337,7 @@ function viewFor(pid){
       wanted:G.phase==='prep'||now<G.wantedUntil?G.wanted:null,wantedRemain:G.phase==='inspect'?Math.max(0,G.wantedUntil-now):null});
   }else if(r.role==='backend'){
     Object.assign(v,{passport,chat,lookAlert:now<G.lookUntil,looks:G.looks,sigNow:sig,sigCd:Math.max(0,(G.sigCd[pid]||0)-now),
-      travs:G.queue.map((q,i)=>{const t=G.trav[q];return {player:pname(q),id:t.id,verdict:t.verdict,cur:i===G.cur,
+      travs:G.queue.map((q,i)=>{const t=G.trav[q];return {player:pname(q),id:t.id,verdict:t.verdict,cur:i===G.cur,...(r.bad?{bad:G.roles[q].bad}:{}),
         xray:G.phase==='inspect'?t.items.filter(x=>x.loc==='bag').map(x=>({sh:x.sh,gx:x.gx,gy:x.gy,r:x.r,x:x.x,m:x.m})):null}})});
   }else{
     const t=G.trav[pid],idx=G.queue.indexOf(pid),at=pid===cp;
@@ -493,14 +493,14 @@ function guideHtml(v){
     others='開始後系統會隨機發角色：海關 1 人、後台 2 人（一好一壞）、其餘是旅客（有好有壞）。';
   }else if(v.phase==='prep'){
     if(v.role==='customs')me=['把下面的通緝名單背起來，重點是「姓名」和「特徵」那欄（通緝犯改不了特徵）','背好就按「我準備好了」。之後要重看得花 1 點'];
-    else if(v.role==='backend')me=['讀每位旅客的條列資料，等一下要拿來核對他們講的話',v.bad?'你是內鬼：先想好怎麼讓海關放過壞旅客，但別被海關看穿':'你是好人：等一下如實回報，幫海關判對','看完就按「我準備好了」'];
+    else if(v.role==='backend')me=['讀每位旅客的條列資料，等一下要拿來核對他們講的話',v.bad?'你是內鬼，而且知道誰是通緝犯（名字旁邊有標）：先想好怎麼讓海關放過他，但別被看穿':'你是好人：等一下如實回報，幫海關判對','看完就按「我準備好了」'];
     else if(v.bad)me=['在易容鏡前換造型：最多改 2 類，讓自己跟通緝令長得不一樣','把假身分小抄背起來，輪到你時會被收走','用易容鏡換造型、把行李拖進行李箱或藏到身上：行李箱後台看得到形狀，藏身上的金屬會被掃到','看一下專屬任務，然後按「我準備好了」'];
     else me=['讀一下回憶錄（整局都看得到，不用背）','把行李拖進行李箱，放不下的小東西藏到身上（超過 3 格的藏不了）','看一下專屬任務，然後按「我準備好了」'];
     others='同一時間：海關在背通緝名單、後台在讀旅客資料、旅客在裝行李（壞旅客還要易容和背小抄）。';
   }else if(v.phase==='inspect'){
     const cur=v.queue.find(q=>q.cur),who=cur?`${esc(cur.pass)}（${esc(cur.player)}）`:'';
     if(v.role==='customs')me=[`用語音審問 ${who}：姓名、職業、從哪來、來做什麼、住哪…`,'看「耳機」裡後台回報旅客答得對不對（兩位後台有一個是內鬼）','比對護照長相跟你記得的通緝名單，想不起來可以花 1 點重看',`拿探測棒在旅客身上按住掃描（免費但花時間），嗶了可以花 2 點取出那個位置；開行李也是 2 點（整局共用，剩 ${v.ap} 點）`,'倒數結束前按「放行」或「抓人」，超時系統會亂判'];
-    else if(v.role==='backend')me=[`聽 ${who} 回答海關的問題，對照下面那張條列資料`,v.bad?'打字回報給海關——你是內鬼，可以說謊幫壞旅客過關，但別太明顯':'打字告訴海關答對還是答錯',v.bad?'看 X 光猜誰是壞旅客；可疑形狀要不要講、怎麼講由你決定':'看 X 光，有可疑形狀就提醒海關開行李','想偷偷傳訊息可以打暗號到螢幕（旅客看得到，海關要回頭才看得到）'];
+    else if(v.role==='backend')me=[`聽 ${who} 回答海關的問題，對照下面那張條列資料`,v.bad?'打字回報給海關——你是內鬼，可以說謊幫壞旅客過關，但別太明顯':'打字告訴海關答對還是答錯',v.bad?'你知道誰是通緝犯：幫他掩護、把嫌疑引到普通旅客身上；X 光的可疑形狀要不要講由你決定':'看 X 光，有可疑形狀就提醒海關開行李','想偷偷傳訊息可以打暗號到螢幕（旅客看得到，海關要回頭才看得到）'];
     else if(v.myVerdict)me=['你已經判完了，可以旁聽後面的審問','任務如果完成了，記得按「我完成任務了」'];
     else if(v.at)me=v.bad?['用語音回答海關，小抄已經被收走，靠記憶講','海關一回頭就趕快偷看小抄（只有 4 秒）','留意背後螢幕的暗號，也可以比動作','想辦法完成專屬任務，完成就按鈕']:['用語音回答海關，照回憶錄講就好','想辦法完成專屬任務，完成就按鈕（要出境＋完成任務才算贏）','留意背後螢幕的暗號，也可以比動作'];
     else me=v.bad?['還沒輪到你，趁小抄還在趕快再背一次','聽海關都問些什麼問題']:['還沒輪到你，先聽海關都問些什麼問題'];
@@ -590,6 +590,7 @@ function lobbyHtml(v){
     <p>${split}</p>${v.isHost?btn('開始遊戲',{a:'start'},'go',n<3):'<p class="dim">等房主開始…</p>'}</div>`;
 }
 
+const sideTag=t=>t.bad==null?'':t.bad?' <span class="chip" style="border-color:var(--bad);color:var(--bad)">😈 通緝犯</span>':' <span class="chip" style="border-color:var(--good);color:var(--good)">😇 普通旅客</span>';
 const slotLabel=id=>(SLOTS.find(q=>q.id===id)||{label:'身上'}).label;
 // 後台看到的 X 光：只有形狀和材質（藍＝金屬、橘＝非金屬），沒有名稱
 function xrayHtml(items){
@@ -610,8 +611,8 @@ function prepHtml(v){
     h+=`<div class="card wide"><h2>📋 通緝名單 — 背起來！</h2><p class="dim">準備結束後名單會收起來，重看一次要花 1 點行動點數、只顯示 15 秒。旅客可能只是長得像或名字像；通緝犯會用假名，最多易容 2 類，「特徵」改不了。</p>${wantedTable(v.wanted)}${readyBtn(v)}</div>`;
   }else if(v.role==='backend'){
     h+=`<div class="card wide"><h2>🖥️ 後台 — 你是${v.bad?'<span class="bad">壞後台</span>（目標：讓壞旅客全數通關）':'<span class="good">好後台</span>（目標：幫海關全部判對）'}</h2>
-      <p class="dim">另一位後台跟你不同陣營。你不知道誰是壞旅客，準備結束後看 X 光自己猜。之後用「耳機」打字給海關，不要開口。</p>
-      <div class="grid">${v.travs.map(t=>`<div class="card"><b>${esc(t.id.name)}</b> <span class="dim">（玩家 ${esc(t.player)}）</span>${idList(t.id)}</div>`).join('')}</div>${readyBtn(v)}</div>`;
+      <p class="dim">另一位後台跟你不同陣營。${v.bad?'<b class="bad">你知道每位旅客的身分</b>（名字旁邊有標），好後台不知道。':'你不知道誰是壞旅客，準備結束後看 X 光自己猜；壞後台則是一開始就知道。'}之後用「耳機」打字給海關，不要開口。</p>
+      <div class="grid">${v.travs.map(t=>`<div class="card"><b>${esc(t.id.name)}</b> <span class="dim">（玩家 ${esc(t.player)}）</span>${sideTag(t)}${idList(t.id)}</div>`).join('')}</div>${readyBtn(v)}</div>`;
   }else{
     h+=`<div class="card"><h2>🪪 你是${v.bad?'<span class="bad">壞旅客（通緝犯）</span>':'<span class="good">好旅客</span>'}</h2>
       <p>護照姓名：<b class="big">${esc(v.passport.name)}</b></p>${lk(v.passport.looks)}`;
@@ -647,7 +648,7 @@ function inspectHtml(v){
       <div class="card"><h2>🖥️ 你是${v.bad?'<span class="bad">壞後台</span>':'<span class="good">好後台</span>'}・旅客資料與 X 光</h2>
       <p>櫃台護照：<b>${esc(pp.name)}</b></p>${lk(pp.looks)}
       <div class="hero thin" style="background-image:url(art/xray.jpg);background-position:center 45%;margin-top:10px"><div class="cap"><b style="font-size:18px">X 光機</b>只看得到形狀，藏身上的照不到</div></div>
-      ${v.travs.map(t=>`<div class="card" style="margin-top:8px${t.cur?';border-color:var(--warn)':''}"><b>${esc(t.id.name)}</b> <span class="dim">（玩家 ${esc(t.player)}）${t.cur?'← 櫃台':t.verdict?'（已判）':''}</span>${idList(t.id)}
+      ${v.travs.map(t=>`<div class="card" style="margin-top:8px${t.cur?';border-color:var(--warn)':''}"><b>${esc(t.id.name)}</b> <span class="dim">（玩家 ${esc(t.player)}）${t.cur?'← 櫃台':t.verdict?'（已判）':''}</span>${sideTag(t)}${idList(t.id)}
         <h3>X 光（行李箱 ${t.xray.length} 件）</h3>${xrayHtml(t.xray)}</div>`).join('')}</div>`;
   }else{
     const st=v.myVerdict?(v.myVerdict==='pass'?'<span class="good">✅ 你已被放行（出境）</span>':'<span class="bad">🚨 你被抓了</span>'):v.at?'<span class="warn">輪到你了！你正在櫃台前接受審問</span>':v.pos<=1?'排隊中，下一個就是你。可以先聽別人怎麼被問。':`排隊中，前面還有 ${v.pos-1} 人。可以先聽別人怎麼被問。`;
