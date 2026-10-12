@@ -61,7 +61,7 @@ ul,ol{margin:4px 0;padding-left:22px}
 .xlist{margin:0;padding-left:20px;font-size:13.5px}.xtm{color:#3fa9f5}.xto{color:#ff9f43}
 .compose{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#0e131b;border:1px dashed var(--line);border-radius:8px;padding:6px 10px;min-height:40px;font-size:18px}
 button.lab{background:#3a3152;border-color:#5b4d85}
-.permit{font-size:13px;background:#1f2a1c;border:1px solid #3d6b3a;border-radius:8px;padding:6px 10px;margin:8px 0;line-height:1.6}
+.permit summary{cursor:pointer}.permit{font-size:13px;background:#1f2a1c;border:1px solid #3d6b3a;border-radius:8px;padding:6px 10px;margin:8px 0;line-height:1.6}
 #rules{color:var(--dim);font-size:13.5px}#rules summary{cursor:pointer;color:var(--fg)}
 </style>
 </head>
@@ -75,7 +75,7 @@ button.lab{background:#3a3152;border-color:#5b4d85}
 <li><b>海關</b>：不知道任何人的陣營。準備時間先看通緝名單，通關時隨時可以再翻開來看（免費，但時間照樣在跑）。每位旅客限時下判：放行或抓人，超時系統隨機判。行動點數整局共用。</li>
 <li><b>後台</b>（一正一反）：看得到所有旅客的條列資料與行李箱 X 光（只有形狀，藏身上的照不到）。<b>壞後台一開始就知道每位旅客的身分，好後台不知道</b>、只能自己猜。每位後台各有一個螢幕，用定型的詞組一句話（有字數上限）秀給櫃台前的旅客看；兩位後台看不到彼此的螢幕。</li>
 <li><b>行李與搜身</b>：行李箱是 4×3 格，放得下才算；超過 3 格的東西藏不了身上。身上有 6 個位置，海關用探測棒按住掃描（金屬才會嗶），花 2 點可以叫旅客掏出指定位置。</li>
-<li><b>職業許可</b>：有些危險物品特定職業可以合法攜帶（例如牛仔可以帶手槍）。搜到東西不代表有罪，要對職業。</li>
+<li><b>職業許可</b>：有些危險物品特定職業可以合法攜帶，而且有合理的解釋（例如廚師帶刀是吃飯的傢伙、牛仔帶槍是趕牛用的）。搜到東西不代表有罪，要對職業、聽解釋。</li>
 <li><b>好旅客</b>：全程拿著回憶錄，但內容只有很模糊的大方向（「人到中年」「工作整天坐著」），沒有精確答案；後台和通緝犯拿的才是精確的條列版。<b>壞旅客＝通緝犯</b>：護照是假名，最多易容 2 類（「特徵」改不了），小抄輪到你時會被收走。</li>
 <li><b>回頭偷看</b>：海關可回頭看兩位後台的螢幕；後台會被通知、櫃台前的壞旅客可趁機偷看小抄 4 秒、海關畫面會糊 3 秒，回頭越多越糊。</li>
 <li><b>勝負（個人）</b>：海關＝全判對＋壞旅客沒完成任務；好後台同海關；好旅客＝出境且完成任務；壞旅客＝出境或完成任務；壞後台＝壞旅客全數通關。任務完成自己按鈕、誠實制。</li>
@@ -115,13 +115,18 @@ const ORD=[
   ['太陽餅禮盒','方盒、內有多塊有機物',0,0,['XXX','XXX']],['一捆充電線','纏成一團的金屬線',1,0,['XX']],['玩具水槍','槍形塑膠物',0,0,['XX','X.']],
   ['折疊傘','長條金屬骨架',1,0,['XXX']],['指甲剪','小型金屬片',1,0,['X']],['毛衣','一團布料',0,0,['XX','XX']],['金屬皮帶扣','扁平金屬塊',1,0,['X']]
 ];
-// 危險物品：形狀都跟某件普通物品一模一樣。第 5 欄＝可以合法攜帶它的職業（職業許可）
+// 危險物品：形狀都跟某件普通物品一模一樣。第 5 欄＝可以合法攜帶它的職業 → 合理的解釋
 const CONTRA=[
-  ['手槍','L 形、有握把的金屬物',1,['XX','X.'],['牛仔']],['彈簧刀','細長棒狀金屬',1,['XXX'],['廚師','水電師傅']],['一罐白粉','罐裝白色粉末',0,['X','X'],['麵包師傅']],
-  ['一綑炸藥','圓形、內有齒輪與電線',1,['XX','XX'],['煙火師傅']],['一疊假鈔','方形紙類堆疊',0,['XX','XX'],['魔術師']],['電擊棒','磚塊狀高密度電子物',1,['XX'],['保全']],['一瓶汽油','瓶裝液體',0,['X','X'],['計程車司機']]
+  ['手槍','L 形、有握把的金屬物',1,['XX','X.'],{牛仔:'趕牛的時候用來嚇走野狼'}],
+  ['一把刀','細長棒狀金屬',1,['XXX'],{廚師:'吃飯的傢伙，自己的刀用得最順手',水電師傅:'剝電線、割膠帶用的工具刀'}],
+  ['一罐白粉','罐裝白色粉末',0,['X','X'],{麵包師傅:'自己調的麵粉，外面買不到'}],
+  ['一綑炸藥','圓形、內有齒輪與電線',1,['XX','XX'],{煙火師傅:'下一場煙火秀要用的火藥'}],
+  ['一疊假鈔','方形紙類堆疊',0,['XX','XX'],{魔術師:'表演用的道具鈔票'}],
+  ['電擊棒','磚塊狀高密度電子物',1,['XX'],{保全:'公司配發的執勤裝備'}],
+  ['一瓶汽油','瓶裝液體',0,['X','X'],{計程車司機:'怕半路沒油，習慣帶一瓶備用'}]
 ];
-const LEGIT_JOBS=[...new Set(CONTRA.flatMap(c=>c[4]))];
-const legitFor=job=>CONTRA.filter(c=>c[4].includes(job));
+const LEGIT_JOBS=[...new Set(CONTRA.flatMap(c=>Object.keys(c[4])))];
+const legitFor=job=>CONTRA.filter(c=>job in c[4]);
 const TASK_GOOD=['讓海關親口說出「歡迎」','讓海關笑出聲','審問中自然提到三種食物','反問海關一個問題並得到回答','讓海關對你用一次金屬探測','讓海關重複一次你說過的話'];
 const TASK_BAD=['審問中說出「炸彈」兩個字而沒被追問','讓海關全程沒開你的行李箱','讓海關為了你回頭偷看螢幕一次','故意答錯一題個資而沒被拆穿','讓海關對你說「不好意思」','讓海關在你身上花不到 2 點行動點數'];
 const GESTURE=['摸了摸鼻子','抓了抓頭','咳了兩聲','眨了眨眼','聳了聳肩','拉了拉耳朵','比了個讚','看了看手錶'];
@@ -182,14 +187,14 @@ function genItems(bad,job){
   for(;;){
     let its;
     if(bad){
-      const c=pick(CONTRA.filter(q=>!q[4].includes(job)));
+      const c=pick(CONTRA.filter(q=>!(job in q[4])));
       its=shuffle(ORD).slice(0,3).map(o=>({n:o[0],x:o[1],m:!!o[2],c:false,lg:false,sh:o[4]}));
       its.push({n:c[0],x:c[1],m:!!c[2],c:true,lg:false,sh:c[3]});
     }else{
       const lg=legitFor(job),tool=lg.length?pick(lg):null,sus=pick(ORD.filter(o=>o[3]));
       const ords=tool?shuffle(ORD).slice(0,3):[sus,...shuffle(ORD.filter(o=>o!==sus)).slice(0,3)];
       its=ords.map(o=>({n:o[0],x:o[1],m:!!o[2],c:false,lg:false,sh:o[4]}));
-      if(tool)its.push({n:tool[0],x:tool[1],m:!!tool[2],c:false,lg:true,sh:tool[3]});
+      if(tool)its.push({n:tool[0],x:tool[1],m:!!tool[2],c:false,lg:true,why:tool[4][job],sh:tool[3]});
     }
     its=shuffle(its).map(it=>({...it,loc:'none',gx:0,gy:0,r:0,slot:null,seen:false}));
     if(autoPack(its))return its;
@@ -387,7 +392,7 @@ function viewFor(pid){
     const t=G.trav[pid],idx=G.queue.indexOf(pid),at=pid===cp;
     const sheetOn=G.phase==='prep'||idx>G.cur||(at&&now<G.peekUntil);
     Object.assign(v,{passport:{name:t.passName,looks:t.looks},real:t.real,items:t.items.map((i,k)=>({i:k,n:i.lg?i.n+'（職業用品，合法）':i.n,x:i.x,m:i.m,c:i.c,sh:i.sh,loc:i.loc,gx:i.gx,gy:i.gy,r:i.r,slot:i.slot})),
-      task:t.task,taskDone:t.taskDone,at,pos:idx-G.cur,myVerdict:t.verdict,screens:at?scr:null,
+      tools:t.items.filter(i=>i.lg).map(i=>({n:i.n,why:i.why})),task:t.task,taskDone:t.taskDone,at,pos:idx-G.cur,myVerdict:t.verdict,screens:at?scr:null,
       memoir:r.bad?null:memoir(t.id),sheet:r.bad&&sheetOn?t.id:null,peek:r.bad&&at&&now<G.peekUntil});
   }
   return v;
@@ -635,7 +640,7 @@ function lobbyHtml(v){
 }
 
 const sideTag=t=>t.bad==null?'':t.bad?' <span class="chip" style="border-color:var(--bad);color:var(--bad)">😈 通緝犯</span>':' <span class="chip" style="border-color:var(--good);color:var(--good)">😇 普通旅客</span>';
-const permitHtml=()=>`<div class="permit"><b>📜 職業許可</b>：${CONTRA.map(c=>`${c[4].join('／')}可帶<b>${c[0]}</b>`).join('、')}。其他人帶就是違禁品。</div>`;
+const permitHtml=()=>`<details class="permit" open><summary><b>📜 職業許可</b>（這些職業帶這些東西是合法的，其他人帶就是違禁品）</summary>${CONTRA.map(c=>Object.entries(c[4]).map(([j,w])=>`<div><b>${j}</b> 可帶 <b>${c[0]}</b> <span class="dim">— ${w}</span></div>`).join('')).join('')}</details>`;
 const sideName=(i,n)=>n>1?(i?'右螢幕':'左螢幕'):'螢幕';
 const screenBox=t=>`<div class="screen">${t?esc(t):'<span class="dim" style="font-size:15px">（空白）</span>'}</div>`;
 const screensHtml=a=>`<div class="scr2">${a.map((t,i)=>`<div><div class="dim" style="text-align:center;font-size:13px">${sideName(i,a.length)}</div>${screenBox(t)}</div>`).join('')}</div>`;
@@ -648,7 +653,7 @@ function xrayHtml(items){
     <ol class="xlist">${items.map(it=>`<li><span class="${it.m?'xtm':'xto'}">${it.m?'金屬':'非金屬'}</span> ${esc(it.x)}</li>`).join('')||'<li class="dim">空的</li>'}</ol></div>`;
 }
 function travelerIdHtml(v){
-  if(!v.bad)return `<h3>📖 你的回憶錄（全程可看）</h3><div class="memo">${esc(v.memoir)}</div><p class="dim" style="margin:4px 0 0">回憶錄只有很模糊的大方向，連你做什麼工作、從哪裡來都只有一點線索。精確的答案在後台手上：輪到你時留意海關背後的螢幕，後台會給提示，但其中一位是內鬼。</p>`;
+  if(!v.bad)return `<h3>📖 你的回憶錄（全程可看）</h3><div class="memo">${esc(v.memoir)}</div>${(v.tools||[]).map(t=>`<div class="permit">🧰 你帶著<b>${esc(t.n)}</b>，這是你工作要用的：${esc(t.why)}。它是合法的，被搜到就照實解釋。</div>`).join('')}<p class="dim" style="margin:4px 0 0">回憶錄只有很模糊的大方向，連你做什麼工作、從哪裡來都只有一點線索。精確的答案在後台手上：輪到你時留意海關背後的螢幕，後台會給提示，但其中一位是內鬼。</p>`;
   return `<h3>📝 假身分小抄${v.peek?'<span class="warn">（海關回頭了，快偷看！）</span>':''}</h3>`+
     (v.sheet?`<div class="memo">${idList(v.sheet)}</div>`:'<div class="memo dim">小抄已經跟護照一起被收走了，只能靠記憶。海關回頭時可以偷看 4 秒。</div>');
 }
@@ -731,7 +736,7 @@ function endHtml(v){
     <p>判決：${t.verdict==='pass'?'✅ 放行':'🚨 抓人'}${t.auto?'（超時隨機）':''}　任務：${esc(t.task)} → ${t.taskDone?'<span class="good">完成</span>':'<span class="dim">未完成</span>'}</p>
     ${t.real?`<p>本名 <b>${esc(t.real.name)}</b>，易容了：${CATS.filter(k=>t.looks[k]!==t.real.looks[k]).map(k=>`${k}（${esc(t.real.looks[k])}→${esc(t.looks[k])}）`).join('、')||'完全沒易容'}</p>`:''}
     ${lk(t.looks)}${idList(t.id)}
-    <p>行李箱：${t.items.filter(i=>i.loc==='bag').map(i=>(i.c?'【違禁品】':i.lg?'【職業許可】':'')+esc(i.n)).join('、')||'空'}<br>身上：${t.items.filter(i=>i.loc==='body').map(i=>`${slotLabel(i.slot)}＝${i.c?'【違禁品】':i.lg?'【職業許可】':''}${esc(i.n)}`).join('、')||'空'}</p></div>`).join('')}
+    <p>行李箱：${t.items.filter(i=>i.loc==='bag').map(i=>(i.c?'【違禁品】':i.lg?'【職業許可】':'')+esc(i.n)+(i.lg?`（${esc(i.why)}）`:'')).join('、')||'空'}<br>身上：${t.items.filter(i=>i.loc==='body').map(i=>`${slotLabel(i.slot)}＝${i.c?'【違禁品】':i.lg?'【職業許可】':''}${esc(i.n)}${i.lg?`（${esc(i.why)}）`:''}`).join('、')||'空'}</p></div>`).join('')}
   <div class="card wide"><h2>📋 通緝名單</h2>${wantedTable(e.wanted)}</div>`+logCard(v);
 }
 
