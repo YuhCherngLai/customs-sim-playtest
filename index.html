@@ -11,7 +11,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 "Microsoft Jhen
 #app,#rules{max-width:1100px;margin:0 auto;padding:12px 16px}
 h1{font-size:22px;margin:8px 0}h2{font-size:16px;margin:0 0 8px;color:var(--acc)}h3{font-size:14px;margin:10px 0 4px;color:var(--dim)}
 .bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 14px;position:sticky;top:0;z-index:5}
-.bar b{color:var(--acc)}.timer{margin-left:auto;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.bar b{color:var(--acc)}.bar .sm{margin-left:auto}.timer{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-top:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;transition:filter .3s}
 .wide{grid-column:1/-1}
@@ -35,11 +35,23 @@ ul,ol{margin:4px 0;padding-left:22px}
 .step{border:1px solid var(--line);border-radius:999px;padding:1px 10px;color:var(--dim)}
 .step.on{border-color:var(--warn);color:#000;background:var(--warn);font-weight:700}.step.done{color:var(--good);border-color:#2f6b4a}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.hero{position:relative;border-radius:12px;overflow:hidden;height:150px;background:#000 center/cover no-repeat;border:1px solid var(--line)}
+.hero.tall{height:270px}.hero.thin{height:96px;margin-bottom:8px}
+.hero::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,14,22,.88) 0%,rgba(10,14,22,.4) 50%,rgba(10,14,22,0) 100%)}
+.hero .cap{position:absolute;left:18px;bottom:12px;z-index:1;text-shadow:0 2px 6px #000}.hero .cap b{display:block;font-size:26px;line-height:1.3}
+.ava{width:38px;height:38px;vertical-align:middle;border-radius:50%;background:#26324a;margin-right:8px;object-fit:contain}
+#fx{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:50}
+.stamp{font-size:64px;font-weight:900;padding:6px 34px;border:8px solid;border-radius:14px;background:rgba(0,0,0,.45);animation:stamp 1.8s forwards}
+.stamp.pass{color:var(--good)}.stamp.arrest{color:var(--bad)}
+@keyframes stamp{0%{transform:rotate(-12deg) scale(3.2);opacity:0}12%{transform:rotate(-12deg) scale(1);opacity:1}80%{transform:rotate(-12deg) scale(1);opacity:1}100%{transform:rotate(-12deg) scale(1);opacity:0}}
+.flash{width:min(520px,80vw);border-radius:14px;border:3px solid var(--warn);box-shadow:0 10px 40px #000;animation:flash 1.4s forwards}
+@keyframes flash{0%{transform:scale(.6);opacity:0}15%{transform:scale(1);opacity:1}80%{opacity:1}100%{opacity:0}}
 #rules{color:var(--dim);font-size:13.5px}#rules summary{cursor:pointer;color:var(--fg)}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<div id="fx"></div>
 <details id="rules">
 <summary>📖 規則速查（10/5 組會版・文字試玩）</summary>
 <ul>
@@ -266,7 +278,7 @@ function viewFor(pid){
     remain:G.deadline?Math.max(0,G.deadline-now):null,note:nt&&nt.until>now?nt.text:''};
   if(G.phase==='lobby')return v;
   const r=G.roles[pid];v.role=r.role;v.bad=r.bad;
-  v.log=G.log.slice(-40).reverse();
+  v.log=G.log.slice(-40).reverse();v.logN=G.log.length;
   if(G.phase==='end'){v.end=G.result;return v}
   v.queue=G.queue.map((q,i)=>({player:pname(q),pass:G.trav[q].passName,verdict:G.trav[q].verdict,cur:i===G.cur}));
   v.iReady=!!G.ready[pid];v.readyN=G.players.filter(p=>G.ready[p.pid]).length;
@@ -301,7 +313,7 @@ function tick(){
 }
 function pushAll(){
   for(const p of G.players){
-    if(p.pid===G.hostPid){V=viewFor(p.pid);vAt=performance.now()}
+    if(p.pid===G.hostPid){const nv=viewFor(p.pid);fx(V,nv);V=nv;vAt=performance.now()}
     else{
       // 畫面有變才送，另外每 2 秒補送一次當心跳
       const v=viewFor(p.pid),key=JSON.stringify({...v,remain:0,wantedRemain:0,sigCd:v.sigCd>0}),ls=lastSent[p.pid],now=Date.now();
@@ -318,12 +330,12 @@ function newRoom(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ';return Array.from({length:
 const pub=(topic,obj)=>{if(mq&&mq.connected)mq.publish(TOPIC+room+'/'+topic,JSON.stringify(obj))};
 function mqConnect(onReady,onMsg){
   let first=true;
-  mq=mqtt.connect(BROKER,{clientId:'cs_'+myPid+'_'+Math.random().toString(36).slice(2,6),keepalive:30,reconnectPeriod:2000,connectTimeout:10000});
+  mq=mqtt.connect(BROKER,{clientId:'cs_'+myPid+'_'+Math.random().toString(36).slice(2,6),keepalive:30,reconnectPeriod:1000,connectTimeout:5000});
   mq.on('connect',()=>{status='';if(first){first=false;onReady()}render()});
   mq.on('reconnect',()=>{if(!first){status='網路斷線，重連中…';render()}});
   mq.on('error',()=>{});
   mq.on('message',(t,buf)=>{let d;try{d=JSON.parse(buf.toString())}catch(e){return}onMsg(d)});
-  setTimeout(()=>{if(first&&mq){const msg='連不上中繼伺服器（這個網路可能擋了 8084 埠，換個網路或開手機熱點試試）';if(isHost){mq.end(true);mq=null;isHost=false;status='';fatal=msg;render()}else leave(msg)}},12000);
+  setTimeout(()=>{if(first&&mq){const msg='連不上中繼伺服器（這個網路可能擋了 8084 埠，換個網路或開手機熱點試試）';if(isHost){mq.end(true);mq=null;isHost=false;status='';fatal=msg;render()}else leave(msg)}},25000);
 }
 function hostRoom(){
   isHost=true;room=newRoom();status='建立房間中…';fatal='';render();
@@ -367,7 +379,7 @@ function joinRoom(code){
       }
     },2000);
   },d=>{
-    if(d.t==='view'){V=d.v;vAt=performance.now();lastView=Date.now();if(status)status='';render()}
+    if(d.t==='view'){fx(V,d.v);V=d.v;vAt=performance.now();lastView=Date.now();if(status)status='';render()}
     else if(d.t==='err')leave(d.msg);
   });
 }
@@ -384,6 +396,46 @@ const chatLog=v=>`<div class="log">${v.chat.length?v.chat.map(c=>`<div><b>${esc(
 const queueBar=v=>`<div class="card wide">排隊：${v.queue.map(q=>`<span class="chip ${q.verdict||(q.cur?'cur':'')}">${esc(q.pass)}（${esc(q.player)}）${q.verdict==='pass'?'✅ 已放行':q.verdict==='arrest'?'🚨 已抓':q.cur?'← 櫃台':''}</span>`).join('')}</div>`;
 const readyBtn=v=>`<div class="row" style="margin-top:8px">${btn(v.iReady?'✔ 已準備':'我準備好了',{a:'ready'},'go',v.iReady)}<span class="dim">${v.readyN}/${v.players.length} 人準備好（全員按下就提早開始）</span></div>`;
 const side=v=>v.role==='customs'?'':`<span class="${v.bad?'bad':'good'}">${v.bad?'😈 壞陣營':'😇 好陣營'}</span>`;
+
+// ───────── 美術與音效（沿用企劃書的 Blender 算圖與動畫音效） ─────────
+const AVA=['grandma','spy','trader','corgi','cheese'];
+const ava=i=>`<img class="ava" src="art/p_${AVA[i%AVA.length]}.webp" alt="">`;
+const hero=(img,title,sub,cls='',pos='center')=>`<div class="hero wide ${cls}" style="background-image:url(art/${img}.jpg);background-position:${pos}"><div class="cap"><b>${title}</b>${sub}</div></div>`;
+function sceneHtml(v){
+  if(v.phase==='lobby')return hero('overview','候機大廳','等所有人到齊就出發');
+  if(v.phase==='end')return hero('podium','今日結算','誰騙過了誰？','tall','center 30%');
+  if(v.role==='customs')return v.phase==='prep'?hero('selfie','海關值勤前','把通緝名單背起來','','center 35%'):hero('pov','海關櫃台','問話、檢查、蓋章','','center 40%');
+  if(v.role==='backend')return hero('desk','後台監控室',v.bad?'你是內鬼，別被發現':'幫海關把關','','center 45%');
+  return hero('cover','入境排隊區',v.bad?'你是通緝犯，混過去':'你只是個普通旅客','','center 55%');
+}
+let muted=false;try{muted=localStorage.cs_mute==='1'}catch(e){}
+const SND={};
+function play(n,delay=0){
+  if(muted)return;
+  setTimeout(()=>{try{const a=(SND[n]||(SND[n]=new Audio('art/'+n+'.mp3'))).cloneNode();a.volume=.6;a.play().catch(()=>{})}catch(e){}},delay);
+}
+function show(html,ms){const el=document.getElementById('fx');el.innerHTML=html;clearTimeout(show.t);show.t=setTimeout(()=>el.innerHTML='',ms)}
+// 比對前後兩次畫面，對新出現的現場動態播放特效
+function fx(prev,v){
+  if(!prev)return;
+  if((v.screen&&!prev.screen)||(v.sigNow&&!prev.sigNow))play('pop');
+  let pn=prev.logN||0;const n=v.logN||0;if(n<pn)pn=0;
+  if(n<=pn)return;
+  const fresh=v.log.slice(0,Math.min(n-pn,6)).reverse(),judged=fresh.some(l=>l.startsWith('🧑‍✈️')||l.startsWith('⏰'));
+  for(const l of fresh){
+    if(l.startsWith('🛫'))play('next');
+    else if(l.startsWith('➡️'))play('next',judged?1700:0);
+    else if(l.startsWith('🔍')){show('<img class="flash" src="art/wand.jpg" alt="">',1400);play('beep')}
+    else if(l.startsWith('✋')||l.startsWith('🧳')||l.startsWith('📋'))play('deduct');
+    else if(l.startsWith('👀'))play('look');
+    else if(l.startsWith('🙋'))play('pop');
+    else if(l.startsWith('🧑‍✈️')||l.startsWith('⏰')){
+      const ok=l.includes('放行');
+      show(`<div class="stamp ${ok?'pass':'arrest'}">${ok?'放行 PASS':'抓人 ARREST'}</div>`,1800);play('stamp');play(ok?'pass':'arrest',180);
+    }else if(l.startsWith('🏁'))play('tada',1500);
+  }
+}
+new Image().src='art/wand.jpg';
 
 // 指引：現在是哪一步、你該做什麼、其他人在做什麼
 function guideHtml(v){
@@ -431,9 +483,9 @@ function render(){
   const v=V,phaseName={lobby:'大廳',prep:'準備時間',inspect:'通關中',end:'結算'}[v.phase];
   let h=`<div class="bar"><span>房號 <b class="big">${v.room}</b></span><span>你：<b>${esc(v.name)}</b></span>`+
     (v.role?`<span>角色：<b>${ROLE_NAME[v.role]}</b> ${side(v)}</span>`:'')+`<span>${phaseName}</span>`+
-    (status?`<span class="warn">${status}</span>`:'')+`<span class="timer" data-tm="main"></span></div>`;
+    (status?`<span class="warn">${status}</span>`:'')+btn(muted?'🔇':'🔊',{local:'mute'},'sm')+`<span class="timer" data-tm="main"></span></div>`;
   if(v.note)h+=`<div class="note">⚠️ ${esc(v.note)}</div>`;
-  h+='<div class="grid">'+guideHtml(v)+({lobby:lobbyHtml,prep:prepHtml,inspect:inspectHtml,end:endHtml}[v.phase])(v)+'</div>';
+  h+='<div class="grid">'+sceneHtml(v)+guideHtml(v)+({lobby:lobbyHtml,prep:prepHtml,inspect:inspectHtml,end:endHtml}[v.phase])(v)+'</div>';
   setHtml(app,h);tickTimers();
 }
 function tickTimers(){
@@ -442,13 +494,13 @@ function tickTimers(){
     const base=n.dataset.tm==='main'?V.remain:V[n.dataset.tm];
     n.textContent=base==null?'':n.dataset.tm==='main'?'⏱ '+fmt(Math.max(0,base-el)):Math.ceil(Math.max(0,base-el)/1000);
   });
+  if(V.phase==='inspect'&&V.remain!=null){const sec=Math.ceil((V.remain-el)/1000);if(sec>0&&sec<=10&&sec!==tickTimers.last){tickTimers.last=sec;play('tick')}}
 }
 setInterval(tickTimers,250);
 
 function homeHtml(){
   const q=new URLSearchParams(location.search).get('room')||'';
-  return `<h1>🛃 機場海關模擬器｜線上試玩版</h1>
-  <p class="dim">文字版桌遊，3–6 人（標準 5 人）。語音請另開 Discord。</p>
+  return hero('cover','🛃 機場海關模擬器','線上試玩版｜3–6 人（標準 5 人），語音請另開 Discord','tall','center 55%').replace(' wide','')+`
   ${fatal?`<div class="alert">${esc(fatal)}</div>`:''}${status?`<div class="note">${status}</div>`:''}
   <div class="grid"><div class="card"><h2>你的暱稱</h2><input id="nm" data-keep="1" maxlength="12" placeholder="暱稱" value="${esc(myName)}"></div>
   <div class="card"><h2>開房間（當房主）</h2><p class="dim">房主的分頁握有整局資料，<b>關掉或重新整理這局就沒了</b>。</p>${btn('建立房間',{local:'host'},'go')}</div>
@@ -458,7 +510,7 @@ function homeHtml(){
 function lobbyHtml(v){
   const n=v.players.length,split=n<3?'至少要 3 人':`${n} 人：海關 1／後台 ${n>=4?2:1}／旅客 ${n-1-(n>=4?2:1)}`;
   const num=(k,label,min,max)=>v.isHost?`<label>${label} <input id="cfg_${k}" data-keep="1" type="number" min="${min}" max="${max}" value="${v.cfg[k]}" data-c='{"a":"cfg","k":"${k}"}' style="width:80px"></label>`:`<span>${label} <b>${v.cfg[k]}</b></span>`;
-  return `<div class="card"><h2>玩家（${n}/${MAXP}）</h2>${v.players.map(p=>`<div>${p.on?'🟢':'⚪'} ${esc(p.name)}${p.host?' <span class="chip">房主</span>':''}${p.pid===v.pid?' <span class="dim">（你）</span>':''}${v.isHost&&!p.host?btn('移出',{a:'kick',pid:p.pid},'sm no'):''}</div>`).join('')}
+  return `<div class="card"><h2>玩家（${n}/${MAXP}）</h2>${v.players.map((p,i)=>`<div style="margin:4px 0">${ava(i)}${p.on?'🟢':'⚪'} ${esc(p.name)}${p.host?' <span class="chip">房主</span>':''}${p.pid===v.pid?' <span class="dim">（你）</span>':''}${v.isHost&&!p.host?btn('移出',{a:'kick',pid:p.pid},'sm no'):''}</div>`).join('')}
     <p class="dim">把房號 <b class="big" style="color:var(--acc)">${v.room}</b> 貼給組員。</p></div>
   <div class="card"><h2>設定</h2><div class="row">
     ${v.isHost?`<label>海關 <select id="cfg_customs" data-c='{"a":"cfg","k":"customs"}'><option value="">隨機</option>${v.players.map(p=>`<option value="${p.pid}"${v.cfg.customs===p.pid?' selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`
@@ -524,6 +576,7 @@ function inspectHtml(v){
       <p class="dim">最多 3 個、顯示 3 秒、冷卻 10 秒。櫃台前的旅客看得到，海關要回頭才看得到（已回頭 ${v.looks} 次）。</p></div>
       <div class="card"><h2>🖥️ 你是${v.bad?'<span class="bad">壞後台</span>':'<span class="good">好後台</span>'}・旅客資料與 X 光</h2>
       <p>櫃台護照：<b>${esc(pp.name)}</b></p><div>${looksHtml(pp.looks)}</div>
+      <div class="hero thin" style="background-image:url(art/xray.jpg);background-position:center 45%;margin-top:10px"><div class="cap"><b style="font-size:18px">X 光機</b>只看得到形狀，藏身上的照不到</div></div>
       ${v.travs.map(t=>`<div class="card" style="margin-top:8px${t.cur?';border-color:var(--warn)':''}"><b>${esc(t.id.name)}</b> <span class="dim">（玩家 ${esc(t.player)}）${t.cur?'← 櫃台':t.verdict?'（已判）':''}</span>${idList(t.id)}
         <h3>X 光（行李箱 ${t.xray.length} 件）</h3><ul>${t.xray.map(x=>`<li>${esc(x)}</li>`).join('')||'<li class="dim">空的</li>'}</ul></div>`).join('')}</div>`;
   }else{
@@ -543,7 +596,7 @@ function inspectHtml(v){
 function endHtml(v){
   const e=v.end;
   return `<div class="card wide"><h2>🏁 結算</h2><table><tr><th>玩家</th><th>角色</th><th>陣營</th><th>結果</th><th>原因</th></tr>
-    ${e.rows.map(r=>`<tr><td><b>${esc(r.name)}</b></td><td>${ROLE_NAME[r.role]}</td><td>${r.role==='customs'?'—':r.bad?'<span class="bad">壞</span>':'<span class="good">好</span>'}</td><td class="big ${r.win?'good':'bad'}">${r.win?'🏆 勝':'✖ 敗'}</td><td>${esc(r.why)}</td></tr>`).join('')}</table>
+    ${e.rows.map((r,i)=>`<tr><td>${ava(i)}<b>${esc(r.name)}</b></td><td>${ROLE_NAME[r.role]}</td><td>${r.role==='customs'?'—':r.bad?'<span class="bad">壞</span>':'<span class="good">好</span>'}</td><td class="big ${r.win?'good':'bad'}">${r.win?'🏆 勝':'✖ 敗'}</td><td>${esc(r.why)}</td></tr>`).join('')}</table>
     ${v.isHost?btn('再來一局（回大廳）',{a:'again'},'go'):'<p class="dim">等房主開下一局…</p>'}</div>
   ${e.travs.map(t=>`<div class="card"><h2>${esc(t.passName)}（玩家 ${esc(t.player)}）— ${t.bad?'<span class="bad">壞旅客</span>':'<span class="good">好旅客</span>'}</h2>
     <p>判決：${t.verdict==='pass'?'✅ 放行':'🚨 抓人'}${t.auto?'（超時隨機）':''}　任務：${esc(t.task)} → ${t.taskDone?'<span class="good">完成</span>':'<span class="dim">未完成</span>'}</p>
@@ -563,6 +616,7 @@ function localAct(m){
     if(!readName())return;if(!/^[A-Z]{4}$/.test(code)){fatal='房號是 4 個英文字母';render();return}
     joinRoom(code);
   }
+  else if(m.local==='mute'){muted=!muted;try{localStorage.cs_mute=muted?'1':'0'}catch(e){}render()}
   else if(m.local==='sigAdd'){if(ui.sig.length<3)ui.sig.push(m.e);render()}
   else if(m.local==='sigClear'){ui.sig=[];render()}
   else if(m.local==='sigSend'){send({a:'signal',e:ui.sig});ui.sig=[];render()}
