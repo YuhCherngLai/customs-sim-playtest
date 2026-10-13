@@ -33,7 +33,16 @@
 .xr-list li.xr-off{opacity:.3}
 .xr-dot{flex:none;width:10px;height:10px;border-radius:3px}
 .xr-dot.xr-M{background:#4fb4ff}.xr-dot.xr-O{background:#ff9f43}
-.xr-empty{color:var(--dim,#93a0b5);font-size:13px}`;
+.xr-empty{color:var(--dim,#93a0b5);font-size:13px}
+.xr-fm{fill:none;stroke:var(--warn,#ffc857);stroke-width:.7;stroke-dasharray:1.6 1.1;pointer-events:none}
+.xr-fm.xr-done{stroke:var(--good,#55d38a);stroke-dasharray:none}
+.xr-ft{flex:none;margin-left:auto;font-size:12px;color:var(--warn,#ffc857);white-space:nowrap}
+.xr-ft.xr-done{color:var(--good,#55d38a)}
+.xr-flag{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:8px;padding:6px 8px;border:1px dashed var(--line,#2c3649);border-radius:8px;font-size:13px;color:var(--fg,#e8ecf3)}
+.xr-flag.xr-has{border-color:var(--warn,#ffc857)}
+.xr-flag.xr-done{border-style:solid;border-color:var(--good,#55d38a);color:var(--good,#55d38a)}
+.xr-flag button{font:inherit;font-size:13px;min-height:32px;padding:2px 12px;border-radius:8px;border:1px solid #3d5278;background:#2a3a55;color:var(--fg,#e8ecf3);cursor:pointer}
+.xr-flag button.xr-go{background:#6b5310;border-color:var(--warn,#ffc857)}`;
   // 每種「X 光下的樣子」一個原創輪廓，座標 10 單位＝1 格，畫在未旋轉的形狀上。b＝實心輪廓、d＝內部線條
   const B=(s,c)=>`<path class="xr-b${c?' xr-'+c:''}" d="${s}"/>`,D=s=>`<path class="xr-d" d="${s}"/>`;
   const rr=(x,y,w,h,r)=>`M${x+r},${y}h${w-2*r}a${r},${r} 0 0 1 ${r},${r}v${h-2*r}a${r},${r} 0 0 1 ${-r},${r}h${-(w-2*r)}a${r},${r} 0 0 1 ${-r},${-r}v${-(h-2*r)}a${r},${r} 0 0 1 ${r},${-r}z`;
@@ -69,6 +78,15 @@
     return `translate(${it.gx*10} ${it.gy*10}) `+t;
   }
   const shown=(it,u)=>(u.f==='a'||(u.f==='m')===!!it.m)&&(u.z<0||u.z===it.gz);
+  // 指認抽查：我指給海關的那一件（沒有就 -1）。canFlag／flag／flagOpened 都是選填，沒給就跟純檢視一樣
+  const flagOf=bag=>bag.canFlag&&Number.isInteger(bag.flag)&&bag.flag>=0&&bag.flag<(bag.items||[]).length?bag.flag:-1;
+  function flagHtml(bag,bi,u){
+    if(!bag.canFlag)return '';
+    const fl=flagOf(bag),desc=k=>`${bag.items[k].m?'金屬':'非金屬'}・${api.esc(bag.items[k].x)}`;
+    if(fl>=0&&bag.flagOpened)return `<div class="xr-flag xr-done">📦 海關開了你指的那一件（${desc(fl)}）</div>`;
+    if(fl>=0)return `<div class="xr-flag xr-has"><span>👉 你指給海關的是：<b>${desc(fl)}</b></span>${u.sel>=0&&u.sel!==fl?`<button type="button" class="xr-go" data-xr="flag" data-b="${bi}" data-v="${u.sel}">👉 改指這一件</button>`:''}<button type="button" data-xr="unflag" data-b="${bi}">取消指認</button></div>`;
+    return `<div class="xr-flag">${u.sel>=0?`<button type="button" class="xr-go" data-xr="flag" data-b="${bi}" data-v="${u.sel}">👉 指給海關</button><span class="xr-dim">海關只會知道它的形狀描述，花 1 點就能單獨開這一件</span>`:'<span class="xr-dim">👉 指認：先點一件可疑的東西，再按「指給海關」（這位旅客只能指一件）</span>'}</div>`;
+  }
 
   function bagHtml(bag,bi,grid){
     const items=bag.items||[],esc=api.esc,u=uiOf(bag.label),W=grid.w*10,H=grid.h*10;
@@ -80,11 +98,13 @@
     const order=items.map((it,k)=>k).sort((a,b)=>items[a].gz-items[b].gz||a-b);
     const svg=order.map(k=>{const it=items[k];
       return `<g class="xr-it ${it.m?'xr-M':'xr-O'}${shown(it,u)?(u.sel>=0&&u.sel!==k?' xr-fade':u.sel===k?' xr-sel':''):' xr-off'}" data-xr="sel" data-b="${bi}" data-v="${k}" transform="${xform(it)}">${SIL[it.x]||fallback(it.sh)}</g>`}).join('');
-    const list=items.map((it,k)=>`<li class="${u.sel===k?'xr-sel':''}${shown(it,u)?'':' xr-off'}" data-xr="sel" data-b="${bi}" data-v="${k}"><span class="xr-dot ${it.m?'xr-M':'xr-O'}"></span><span>${it.m?'金屬':'非金屬'}・${esc(it.x)}・第 ${it.gz+1} 層</span></li>`).join('');
+    const fl=flagOf(bag),fi=fl>=0?items[fl]:null;
+    const mark=fi?`<g transform="${xform(fi)}"><path class="xr-fm${bag.flagOpened?' xr-done':''}" d="${rr(.5,.5,fi.sh[0].length*10-1,fi.sh.length*10-1,1.5)}"/></g>`:'';
+    const list=items.map((it,k)=>`<li class="${u.sel===k?'xr-sel':''}${shown(it,u)?'':' xr-off'}" data-xr="sel" data-b="${bi}" data-v="${k}"><span class="xr-dot ${it.m?'xr-M':'xr-O'}"></span><span>${it.m?'金屬':'非金屬'}・${esc(it.x)}・第 ${it.gz+1} 層</span>${fl===k?`<span class="xr-ft${bag.flagOpened?' xr-done':''}">${bag.flagOpened?'📦 海關開了':'👉 已指認'}</span>`:''}</li>`).join('');
     return `<div class="xr-bag${bag.cur?' xr-cur':''}"><div class="xr-head"><b>${esc(bag.label)}</b>${bag.cur?'<span class="xr-tag">← 櫃台</span>':''}<span class="xr-dim">行李箱 ${items.length} 件</span></div>
       <div class="xr-tools">${seg('f',[['a','全部'],['m','只看金屬'],['o','只看非金屬']])}${seg('z',[[-1,'照穿'],...Array.from({length:grid.d},(_,z)=>[z,`第 ${z+1} 層`])])}</div>
-      <div class="xr-wrap"><div class="xr-scr"><svg class="xr-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${gl}${svg}</svg></div>
-      <ul class="xr-list">${list||'<li class="xr-empty">空的</li>'}</ul></div></div>`;
+      <div class="xr-wrap"><div class="xr-scr"><svg class="xr-svg" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${gl}${svg}${mark}</svg></div>
+      <ul class="xr-list">${list||'<li class="xr-empty">空的</li>'}</ul></div>${flagHtml(bag,bi,u)}</div>`;
   }
   function render(){
     if(!root||!st)return;
@@ -96,6 +116,11 @@
     if(!el||!st)return;
     const bag=(st.bags||[])[+el.dataset.b];if(!bag)return;
     const u=uiOf(bag.label),k=el.dataset.xr,v=el.dataset.v;
+    if(k==='flag'||k==='unflag'){   // 指認／取消：只送出，結果等主機下一次 update
+      if(!bag.canFlag||bag.flagOpened)return;
+      if(k==='flag'&&!(+v>=0&&+v<(bag.items||[]).length))return;
+      api.play('pop');api.send({a:'flag',item:k==='flag'?+v:null});return;
+    }
     if(k==='f')u.f=v;
     else if(k==='z')u.z=+v;
     else if(k==='sel'){if(!shown(bag.items[+v],u))return;u.sel=u.sel===+v?-1:+v}
