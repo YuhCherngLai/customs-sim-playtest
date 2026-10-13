@@ -63,6 +63,7 @@ ul,ol{margin:4px 0;padding-left:22px}
 button.lab{background:#3a3152;border-color:#5b4d85}
 .permit{font-size:13px;background:#1f2a1c;border:1px solid #3d6b3a;border-radius:8px;padding:6px 10px;margin:8px 0;line-height:1.6}
 button.sw{width:30px;height:30px;padding:0;border-radius:50%;border:2px solid #3d5278}button.sw.on{border-color:var(--warn);box-shadow:0 0 0 2px var(--warn)}
+.simbar{margin-top:10px;border-color:#7c5cff;background:#1c1830}
 #rules{color:var(--dim);font-size:13.5px}#rules summary{cursor:pointer;color:var(--fg)}
 </style>
 </head>
@@ -151,6 +152,7 @@ const LOOK_MS=3000,BLUR_MS=3000,PEEK_MS=4000,SCR_CD=3000,MAXP=6;
 // ───────── 連線狀態 ─────────
 const BROKER='wss://broker.emqx.io:8084/mqtt',TOPIC='customs-sim-e1/';
 let mq=null,beat=null,isHost=false,room='',V=null,vAt=0,lastView=0,status='',fatal='';
+let sim=null;      // 單人模擬：{as: 目前扮演的玩家 pid}。不連線，整局都在這個分頁裡
 let myPid=sessionStorage.cs_pid||(sessionStorage.cs_pid=Math.random().toString(36).slice(2,10));
 let myName=sessionStorage.cs_name||'';
 const ui={wanted:false,msg:[]};
@@ -404,13 +406,14 @@ function viewFor(pid){
 
 function tick(){
   const now=Date.now();
-  for(const p of G.players)if(p.pid!==G.hostPid)p.on=now-(lastSeen[p.pid]||0)<8000;
+  if(!sim)for(const p of G.players)if(p.pid!==G.hostPid)p.on=now-(lastSeen[p.pid]||0)<8000;
   if(G.phase==='prep'&&now>=G.deadline)startInspect();
   else if(G.phase==='inspect'&&now>=G.deadline)verdict(pick(['pass','arrest']),true);
   pushAll();
 }
 function pushAll(){
   for(const p of G.players){
+    if(sim){if(p.pid===sim.as){const nv=viewFor(p.pid);fx(V,nv);V=nv;vAt=performance.now()}continue}
     if(p.pid===G.hostPid){const nv=viewFor(p.pid);fx(V,nv);V=nv;vAt=performance.now()}
     else{
       // 畫面有變才送，另外每 2 秒補送一次當心跳
@@ -422,7 +425,7 @@ function pushAll(){
 }
 
 // ───────── 連線 ─────────
-function send(m){if(isHost){act(myPid,m);pushAll()}else pub('up',{pid:myPid,m})}
+function send(m){if(isHost){act(sim?sim.as:myPid,m);pushAll()}else pub('up',{pid:myPid,m})}
 function newRoom(){const A='ABCDEFGHJKLMNPQRSTUVWXYZ';return Array.from({length:4},()=>pick(A)).join('')}
 // 所有訊息都經由公開的 MQTT 中繼伺服器轉送（不走點對點，避免兩邊網路打不通）
 const pub=(topic,obj)=>{if(mq&&mq.connected)mq.publish(TOPIC+room+'/'+topic,JSON.stringify(obj))};
@@ -435,6 +438,32 @@ function mqConnect(onReady,onMsg){
   mq.on('message',(t,buf)=>{let d;try{d=JSON.parse(buf.toString())}catch(e){return}onMsg(d)});
   setTimeout(()=>{if(first&&mq){const msg='連不上中繼伺服器（這個網路可能擋了 8084 埠，換個網路或開手機熱點試試）';if(isHost){mq.end(true);mq=null;isHost=false;status='';fatal=msg;render()}else leave(msg)}},25000);
 }
+// ───────── 單人模擬：不開房、不連線，自己切換扮演五個角色 ─────────
+function startSim(){
+  isHost=true;room='模擬';fatal='';status='';
+  const names=['你','機器人 A','機器人 B','機器人 C','機器人 D'];
+  G={phase:'lobby',hostPid:myPid,cfg:{customs:'',prep:600,turn:900,ap:10},notes:{},deadline:null,
+    players:names.map((n,i)=>({pid:i?'bot'+i:myPid,name:n,on:true}))};
+  sim={as:myPid};
+  startGame();
+  sim.as=G.customs;
+  setInterval(tick,500);pushAll();
+}
+function simLabel(pid){
+  const r=G.roles[pid];
+  if(r.role==='customs')return '🧑‍✈️ 海關';
+  if(r.role==='backend')return r.bad?'😈 壞後台':'😇 好後台';
+  return (r.bad?'😈 通緝犯':'😇 好旅客')+`（第 ${G.queue.indexOf(pid)+1} 位）`;
+}
+function simAs(pid){sim.as=pid;ui.wanted=false;ui.msg=[];V=viewFor(pid);vAt=performance.now();render();window.scrollTo(0,0)}
+function simBar(){
+  const order=[G.customs,...G.backs,...G.queue];
+  return `<div class="card simbar"><b>🧪 單人模擬</b> <span class="dim">不用開房、不用連線。點下面切換你要扮演的角色，每個角色的畫面跟真的一樣；其他角色不會自己動，要你切過去操作。</span>
+    <div style="margin-top:6px">${order.map(q=>btn(simLabel(q),{local:'simAs',pid:q},q===sim.as?'go':'')).join('')}</div>
+    <div style="margin-top:4px">${G.phase==='prep'?btn('⏭ 跳過準備時間',{local:'simSkip'},'sm'):''}${btn('🔄 重新發一局',{local:'simNew'},'sm')}${btn('✖ 離開模擬',{local:'simExit'},'sm no')}
+    <span class="dim">模擬裡的時間放得很寬（準備 10 分鐘、每位旅客 15 分鐘）。</span></div></div>`;
+}
+
 function hostRoom(){
   isHost=true;room=newRoom();status='建立房間中…';fatal='';render();
   mqConnect(()=>{
@@ -558,7 +587,7 @@ function guideHtml(v){
     else me=v.bad?['還沒輪到你，趁小抄還在趕快再背一次','聽海關都問些什麼問題']:['還沒輪到你，先聽海關都問些什麼問題'];
     others=`現在櫃台是 ${who}。每一位的流程：海關問話 → 後台用耳機回報 → 海關檢查 → 放行／抓人 → 換下一位。`;
   }else{
-    me=['看下面的結算表：每個人各自算輸贏',v.isHost?'想再玩就按「再來一局」，會重新發角色':'等房主開下一局'];
+    me=['看下面的結算表：每個人各自算輸贏',sim?'想再玩就按上面的「重新發一局」':v.isHost?'想再玩就按「再來一局」，會重新發角色':'等房主開下一局'];
     others='所有人的身分、行李、通緝名單都公開了，可以對答案。';
   }
   return `<div class="card wide guide"><div class="steps">${stepBar}</div><h2>👉 你現在要做的事</h2><ol>${me.map(m=>`<li>${m}</li>`).join('')}</ol><p class="dim" style="margin:6px 0 0">${others}</p></div>`;
@@ -583,6 +612,7 @@ function render(){
   let h=`<div class="bar"><span>房號 <b class="big">${v.room}</b></span><span>你：<b>${esc(v.name)}</b></span>`+
     (v.role?`<span>角色：<b>${ROLE_NAME[v.role]}</b> ${side(v)}</span>`:'')+`<span>${phaseName}</span>`+
     (status?`<span class="warn">${status}</span>`:'')+btn(muted?'🔇':'🔊',{local:'mute'},'sm')+`<span class="timer" data-tm="main"></span></div>`;
+  if(sim)h+=simBar();
   if(v.note)h+=`<div class="note">⚠️ ${esc(v.note)}</div>`;
   h+='<div class="grid">'+sceneHtml(v)+guideHtml(v)+({lobby:lobbyHtml,prep:prepHtml,inspect:inspectHtml,end:endHtml}[v.phase])(v)+'</div>';
   setHtml(app,h);syncMini(v);tickTimers();
@@ -626,6 +656,7 @@ function homeHtml(){
   ${fatal?`<div class="alert">${esc(fatal)}</div>`:''}${status?`<div class="note">${status}</div>`:''}
   <div class="grid"><div class="card"><h2>你的暱稱</h2><input id="nm" data-keep="1" maxlength="12" placeholder="暱稱" value="${esc(myName)}"></div>
   <div class="card"><h2>開房間（當房主）</h2><p class="dim">房主的分頁握有整局資料，<b>關掉或重新整理這局就沒了</b>。</p>${btn('建立房間',{local:'host'},'go')}</div>
+  <div class="card"><h2>🧪 單人模擬</h2><p class="dim">不用開房、不用等人。一個人就能切換扮演海關、兩位後台、兩位旅客，看每個角色的畫面、試每個功能。</p>${btn('開始模擬',{local:'sim'})}</div>
   <div class="card"><h2>加入房間</h2><div class="row"><input id="rc" data-keep="1" maxlength="4" size="6" placeholder="房號" value="${esc(q)}" style="text-transform:uppercase">${btn('加入',{local:'join'},'go')}</div></div></div>`;
 }
 
@@ -736,7 +767,7 @@ function endHtml(v){
   const e=v.end;
   return `<div class="card wide"><h2>🏁 結算</h2><table><tr><th>玩家</th><th>角色</th><th>陣營</th><th>結果</th><th>原因</th></tr>
     ${e.rows.map((r,i)=>`<tr><td>${ava(i)}<b>${esc(r.name)}</b></td><td>${ROLE_NAME[r.role]}</td><td>${r.role==='customs'?'—':r.bad?'<span class="bad">壞</span>':'<span class="good">好</span>'}</td><td class="big ${r.win?'good':'bad'}">${r.win?'🏆 勝':'✖ 敗'}</td><td>${esc(r.why)}</td></tr>`).join('')}</table>
-    ${v.isHost?btn('再來一局（回大廳）',{a:'again'},'go'):'<p class="dim">等房主開下一局…</p>'}</div>
+    ${sim?'<p class="dim">想再玩就按上面的「🔄 重新發一局」。</p>':v.isHost?btn('再來一局（回大廳）',{a:'again'},'go'):'<p class="dim">等房主開下一局…</p>'}</div>
   ${e.travs.map(t=>`<div class="card"><h2>${esc(t.passName)}（玩家 ${esc(t.player)}）— ${t.bad?'<span class="bad">壞旅客</span>':'<span class="good">好旅客</span>'}</h2>
     <p>判決：${t.verdict==='pass'?'✅ 放行':'🚨 抓人'}${t.auto?'（超時隨機）':''}　任務：${esc(t.task)} → ${t.taskDone?'<span class="good">完成</span>':'<span class="dim">未完成</span>'}</p>
     ${t.real?`<p>通緝令上的本名：<b>${esc(t.real.name)}</b>（長相跟通緝令一模一樣）</p>`:''}
@@ -748,6 +779,11 @@ function endHtml(v){
 // ───────── 事件 ─────────
 function readName(){const n=(document.getElementById('nm').value||'').trim().slice(0,12);if(!n){fatal='先填暱稱';render();return false}myName=sessionStorage.cs_name=n;fatal='';return true}
 function localAct(m){
+  if(m.local==='sim'){startSim();return}
+  if(m.local==='simAs'){simAs(m.pid);return}
+  if(m.local==='simSkip'){if(G.phase==='prep'){G.deadline=Date.now()-1;tick()}return}
+  if(m.local==='simNew'){G.phase='lobby';startGame();simAs(G.customs);pushAll();return}
+  if(m.local==='simExit'){location.reload();return}
   if(m.local==='host'){if(!window.mqtt){fatal='連線元件沒載入，檢查網路後重新整理';render();return}if(readName())hostRoom()}
   else if(m.local==='join'){
     const code=(document.getElementById('rc').value||'').trim().toUpperCase();
@@ -771,7 +807,7 @@ document.addEventListener('submit',e=>{
   e.preventDefault();
   if(e.target.id==='chatf'){const i=document.getElementById('chat');if(i.value.trim())send({a:'chat',text:i.value});i.value=''}
 });
-window.addEventListener('beforeunload',e=>{if(isHost&&G&&G.phase!=='lobby'){e.preventDefault();e.returnValue=''}});
+window.addEventListener('beforeunload',e=>{if(isHost&&!sim&&G&&G.phase!=='lobby'){e.preventDefault();e.returnValue=''}});
 
 // 重新整理後自動回到原房間（主機除外）
 if(sessionStorage.cs_room&&myName&&window.mqtt)joinRoom(sessionStorage.cs_room);else render();
