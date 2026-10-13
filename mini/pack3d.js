@@ -5,7 +5,7 @@
 'use strict';
 const TW=92,TH=46,ZH=38,PAD=16;
 const COLORS=['#5fb3ff','#ffb454','#b78cff','#55d38a','#ff8fb1','#ffd84d'];
-let root=null,api=null,st=null,sel=null,rot=0,hover=null,sig='',msg='',msgT=0;
+let root=null,api=null,st=null,sel=null,rot=0,hover=null,sig='',hsig='',msg='',msgT=0;
 
 const CSS=`
 .mp3-wrap{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
@@ -49,8 +49,10 @@ function anchor(it,x,y,r){   // 把落點夾在箱子裡，避免一靠邊就放
   return [Math.max(0,Math.min(x,g.w-w)),Math.max(0,Math.min(y,g.h-h))];
 }
 
-function stage(){
-  const g=st.grid,o={x:PAD+g.h*TW/2,y:PAD+g.d*ZH},W=PAD*2+(g.w+g.h)*TW/2,H=PAD*2+g.d*ZH+(g.w+g.h)*TH/2;
+const origin=()=>({x:PAD+st.grid.h*TW/2,y:PAD+st.grid.d*ZH});
+// 會跟著游標變的那一層：箱子、方塊、落點預覽
+function scene(){
+  const g=st.grid,o=origin();
   const bag=st.items.filter(it=>it.loc==='bag'),cur=sel!=null?st.items[sel]:null;
   let s='';
   // 箱子：地板格線與後方兩面牆
@@ -72,14 +74,23 @@ function stage(){
   for(const c of cubes)s+=cube(c.x,c.y,c.z,o,c.fill,c.extra,c.op);
   // 前方箱緣
   s+=`<path d="M${P(g.w,0,0,o)} L${P(g.w,g.h,0,o)} L${P(0,g.h,0,o)}" fill="none" stroke="#5b7fb5" stroke-width="2"/>`;
-  // 選了東西之後，每一格頂端都是可以點的落點
+  return s;
+}
+// 選了東西之後，每一格頂端都是可以點的落點。游標移動時這一層不重畫，不然按到一半元素被換掉，click 會丟失
+function hits(){
+  const g=st.grid,o=origin(),cur=sel!=null?st.items[sel]:null;
+  let s='';
   if(cur&&st.editable){
     const h=colHeights(st.items,cur),hits=[];
     for(let x=0;x<g.w;x++)for(let y=0;y<g.h;y++)hits.push({x,y,z:h[x+','+y]||0});
     hits.sort((a,b)=>(a.x+a.y)-(b.x+b.y));
     for(const t of hits)s+=poly([P(t.x,t.y,t.z,o),P(t.x+1,t.y,t.z,o),P(t.x+1,t.y+1,t.z,o),P(t.x,t.y+1,t.z,o)],`class="mp3-hit" data-cx="${t.x}" data-cy="${t.y}"`);
   }
-  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
+  return s;
+}
+function stage(){
+  const g=st.grid,W=PAD*2+(g.w+g.h)*TW/2,H=PAD*2+g.d*ZH+(g.w+g.h)*TH/2;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg"><g class="mp3-scene">${scene()}</g><g>${hits()}</g></svg>`;
 }
 
 function side(){
@@ -104,8 +115,9 @@ function side(){
 
 function draw(force){
   if(!root||!st)return;
-  const s=JSON.stringify([st.items,st.editable,sel,rot,hover,msg]);
-  if(!force&&s===sig)return;sig=s;
+  const s=JSON.stringify([st.items,st.editable,sel,rot,msg]),hs=JSON.stringify(hover),sc=root.querySelector('.mp3-scene');
+  if(!force&&s===sig&&sc){if(hs!==hsig){hsig=hs;sc.innerHTML=scene()}return}
+  sig=s;hsig=hs;
   root.innerHTML=`<div class="mp3-wrap"><div class="mp3-stage">${stage()}</div><div class="mp3-side">${side()}</div></div>`;
 }
 
