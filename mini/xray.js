@@ -75,7 +75,7 @@
     '一團布料':B('M3,5Q5,1.5 10,3Q15,1 17,5Q19.5,10 17,15Q15,19 10,17.5Q5,19 3,15Q.8,10 3,5z','thin')+D('M5,6Q9,8 8,13M11,4.5Q13,10 11,16M15,6.5Q13.5,11 15,14.5'),
     '扁平金屬塊':B(rr(2,2.8,6,4.6,.8),'dense')+D(rr(3.6,4.1,2.8,2,.4))
   };
-  let root=null,api=null,st=null,key='',lastCur=null;
+  let root=null,api=null,st=null,key='',lastCur=null,beltT=0;
   const scanAt={};   // 每位旅客剛上櫃台的時間：那一瞬間播輸送帶動畫
   const fresh=l=>scanAt[l]&&performance.now()-scanAt[l]<1500;
   const ui={};   // 每位旅客各自的檢視設定：{f:'a'|'m'|'o', z:-1|層, sel:-1|第幾件}
@@ -162,11 +162,12 @@
       const k=JSON.stringify(state);
       if(k===key)return;   // 內容沒變就不重畫
       const c=(state.bags||[]).find(b=>b.cur),lab=c?c.label:null;
-      if(lab!==lastCur){lastCur=lab;if(lab){scanAt[lab]=performance.now();try{if(api.sfx){api.sfx.tone(110,1000,'sawtooth',.04,80);setTimeout(()=>{if(api&&api.sfx)api.sfx.tone(900,90,'sine',.1)},1300)}}catch(e){}}}
+      if(lab!==lastCur){lastCur=lab;if(lab){scanAt[lab]=performance.now();clearTimeout(beltT);beltT=setTimeout(()=>{delete scanAt[lab];if(root&&st)render()},1700);try{if(api.sfx){api.sfx.tone(110,1000,'sawtooth',.04,80);setTimeout(()=>{if(api&&api.sfx)api.sfx.tone(900,90,'sine',.1)},1300)}}catch(e){}}}
       key=k;st=state;render();
     },
     unmount(){
       if(root){root.removeEventListener('click',onClick);root.innerHTML=''}
+      clearTimeout(beltT);
       const s=document.getElementById('xr-style');if(s)s.remove();
       for(const l in ui)delete ui[l];
       root=api=st=null;key='';

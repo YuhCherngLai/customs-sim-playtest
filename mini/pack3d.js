@@ -6,7 +6,8 @@
 const TW=92,TH=46,ZH=38,PAD=16;
 const COLORS=['#5fb3ff','#ffb454','#b78cff','#55d38a','#ff8fb1','#ffd84d'];
 let root=null,api=null,st=null,sel=null,rot=0,hover=null,sig='',hsig='',msg='',msgT=0;
-let prevPos=null,dropAt={},lidAt=0,wasEdit=null;   // 剛落地的東西、剛蓋上的箱蓋：動畫只在那一瞬間播
+let prevPos=null,dropAt={},lidAt=0,wasEdit=null,animT=0;
+const calm=ms=>{clearTimeout(animT);animT=setTimeout(()=>{dropAt={};lidAt=0;draw(true)},ms)};   // 動畫播完就把標記清掉，免得重新掛上時重播   // 剛落地的東西、剛蓋上的箱蓋：動畫只在那一瞬間播
 const fresh=(t,ms)=>performance.now()-t<ms;
 
 const CSS=`
@@ -171,16 +172,16 @@ window.Mini.pack={
   update(state){
     st=state;
     const pos={};for(const it of st.items)pos[it.i]=it.loc==='bag'?[it.gx,it.gy,it.gz,it.r].join():'';
-    if(prevPos)for(const k in pos)if(pos[k]&&pos[k]!==prevPos[k]){dropAt[k]=performance.now();if(api.sfx)api.sfx.buzz(25)}
+    if(prevPos)for(const k in pos)if(pos[k]&&pos[k]!==prevPos[k]){dropAt[k]=performance.now();calm(500);if(api.sfx)api.sfx.buzz(25)}
     prevPos=pos;
-    if(wasEdit===true&&!st.editable){lidAt=performance.now();api.play('thud',350);if(api.sfx)api.sfx.buzz([30,40,60])}
+    if(wasEdit===true&&!st.editable){lidAt=performance.now();calm(750);api.play('thud',350);if(api.sfx)api.sfx.buzz([30,40,60])}
     wasEdit=!!st.editable;
     if(sel!=null&&(!st.items[sel]||!st.editable)){sel=null;hover=null}
     draw();
   },
   unmount(){
     if(root){root.removeEventListener('click',onClick);root.removeEventListener('pointermove',onMove);root.removeEventListener('mousemove',onMove);root.removeEventListener('pointerdown',onMove);root.innerHTML=''}
-    document.removeEventListener('keydown',onKey);clearTimeout(msgT);
+    document.removeEventListener('keydown',onKey);clearTimeout(msgT);clearTimeout(animT);
     const s=document.getElementById('mp3-style');if(s)s.remove();
     root=null;st=null;sel=null;hover=null;sig='';
   }
