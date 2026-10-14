@@ -121,7 +121,7 @@ button.mechb{flex:none;white-space:nowrap}   /* 大廳的機制開關 */
 <li data-mech="vote"><b>公開投票</b>：海關下判前，兩位後台和不在櫃台前的旅客各投放行／扣留，所有人看得到誰投什麼，結算公開並標出投對投錯。</li>
 <li data-mech="strike"><b>最後一擊</b>：通緝犯被扣留時可以押注兩個螢幕哪個是好後台的：猜中＝好後台不算贏；猜錯＝通緝犯和壞後台都輸。也可以放棄。</li>
 <li data-mech="plant"><b>栽贓</b>：壞後台一局一次，通關開始後（行李已經上輸送帶）可以把一件違禁品塞進一位<b>還沒輪到櫃台的普通旅客</b>的行李箱空位；箱子塞滿就塞不進去。被栽贓的旅客自己的畫面看不到那件，但 X 光照得到、海關開箱或抽查會開到，而且它當然沒申報。代價：兩位後台都會看到「輸送帶紀錄：某某的行李被動過」（不知道哪一件、誰動的），海關看不到。那位旅客被海關扣留＝栽贓成功（表現分）。結算公開。</li>
-<li data-mech="overweight"><b>超重</b>：行李箱用掉的空間（每一格從箱底算到最上面那件，壓在底下的空隙也算）到 14 格以上就算超重（整個箱子 27 格）。超重的箱子：海關可以免費丟掉一件（只看得到形狀描述，丟掉就沒了，每位旅客一次）；後台的 X 光疊成一團看不清，也沒辦法指認。旅客堆行李時看得到目前格數。</li>
+<li data-mech="overweight"><b>超重</b>：行李箱裡的東西實際佔到 14 格以上就算超重（整個箱子 27 格）。超重的箱子：海關可以免費丟掉一件（只看得到形狀描述，丟掉就沒了，每位旅客一次）；後台的 X 光疊成一團看不清，也沒辦法指認。旅客堆行李時看得到目前格數。</li>
 <li><b>表現分</b>：不影響勝負，只用來在結算排名、頒稱號，全部由系統判定。海關：判對一位 +1、查到沒申報 +1、收下伴手禮 +1。後台：投票投對 +1、指認被開到違禁品 +1；壞後台另有指認騙海關白開 +1、掩護的通緝犯出境 +1<span data-mech="plant">、栽贓成功 +3</span>。旅客：普通旅客出境 +1、出境又完成任務再 +1；通緝犯出境 +2、讓海關搜了白搜 +1、最後一擊押中 +2。壞陣營投票帶風向、海關也跟著判錯 +1。</li>
 <li><b>下判</b>：海關把「放行」或「抓人」印章拖到護照上才算數。</li>
 <li><b>危險物品</b>：有些旅客是因為工作才帶著看起來很危險的東西，他自己知道理由；通緝犯帶的違禁品沒有人給理由，被搜到只能自己掰。沒有對照表，海關要聽解釋、對職業，自己判斷合不合理。</li>
@@ -459,10 +459,10 @@ const DECL_REFUND=2,DECL_FINE=2,STRIKE_SEC=25;
 // 每一種加分事件一個數值，要調整只改這裡；文字說明在 score() 呼叫的地方
 const PTS={judge:1,found:1,bribe:1,vote:1,steer:1,flagHit:1,flagWaste:1,goodOut:1,goodTask:1,badOut:2,badHelp:1,fine:1,plant:3,strike:2};
 const PLANT_OPTS=5;    // 壞後台栽贓時可以挑的違禁品數（開局抽，至少一件 1 格的小東西）
-const OVER_CELLS=14;   // 行李箱用掉的空間到這個數字就算超重（整個箱子 GRID 3×3×3＝27 格）
+const OVER_CELLS=14;   // 行李箱裡的東西實際佔到這麼多格就算超重（整個箱子 GRID 3×3×3＝27 格）
 const score=(pid,k,why)=>{if(pid&&G.pts)(G.pts[pid]=G.pts[pid]||[]).push({k,p:PTS[k],why})};
-// 行李箱用掉的空間：每一格從箱底算到最上面那件東西的高度（壓在底下的空隙也算，亂疊會浪費空間）
-const bagLoad=items=>Object.values(colHeights(items.filter(i=>i.loc==='bag'))).reduce((a,b)=>a+b,0);
+// 行李箱的格數：箱子裡每件東西實際佔的格子加起來（主人 10/14 拍板：照實際格數算）
+const bagLoad=items=>items.filter(i=>i.loc==='bag').reduce((a,i)=>a+cells(i.sh,0).length,0);
 // ───────── 這局套用的機制：房主在大廳勾選，存在 G.cfg[k]（沒設定＝開）。之後的機制往 MECHS 裡加就好 ─────────
 const MECHS=[
   {k:'declare',name:'📋 申報制',desc:'旅客準備時勾申報單；海關搜到沒申報的東西拿回 2 點，搜了卻沒搜到要賠 2 點'},
@@ -471,7 +471,7 @@ const MECHS=[
   {k:'strike',name:'💥 最後一擊',desc:'通緝犯被扣留時可以押注哪個螢幕是好後台的：猜中好後台不算贏，猜錯通緝犯和壞後台都輸'},
   {k:'press',name:'😤 排隊抱怨值',desc:'後面有人在等就一直漲：到 50 海關 −1 點，到 100 長官介入、這位只剩 20 秒'},
   {k:'plant',name:'🧳 栽贓',desc:'壞後台一局一次，通關時把一件違禁品塞進還沒輪到的普通旅客行李箱；兩位後台會看到輸送帶紀錄'},
-  {k:'overweight',name:'⚖️ 超重',desc:`行李箱用掉 ${OVER_CELLS} 格以上算超重：海關可以免費丟掉一件，後台的 X 光疊成一團看不清`}
+  {k:'overweight',name:'⚖️ 超重',desc:`行李箱裡的東西佔到 ${OVER_CELLS} 格以上算超重：海關可以免費丟掉一件，後台的 X 光疊成一團看不清`}
 ];
 const MECH_WORDS={declare:['申報'],bribe:['伴手禮','賄賂','收賄'],vote:['投票','改票','投放行'],strike:['最後一擊'],press:['抱怨值'],plant:['栽贓','輸送帶紀錄'],overweight:['超重']};
 // 把提示清單裡跟「這局沒套用的機制」有關的項目拿掉；表現分那一行只拿掉相關的分項
@@ -1140,7 +1140,7 @@ function guideHtml(v){
     else me=['讀一下回憶錄（整局都看得到）：裡面只有模糊的印象，先想好被問「幾歲、做什麼、從哪來」要怎麼回答','把行李疊進行李箱，或把小東西藏到身上（超過 3 格的藏不了）','想打扮就打扮一下（純娛樂），準備時間到了會自動開始'];
     if(v.role==='traveler')me.push(`勾「申報單」：沒申報的東西被海關搜到，他拿回 ${DECL_REFUND} 點；他搜了卻沒抓到，他要賠 ${DECL_FINE} 點。${v.bad?'要不要老實申報違禁品、編個理由，由你決定':'危險的職業用品申報了也要準備好解釋'}`);
     if(v.role==='traveler'&&!v.bad)me.splice(2,0,'看一下你的專屬任務：系統會自動判定、不用按鈕。有些任務現在就要準備（例如把金屬物品藏到身上）');
-    if(v.role==='traveler'&&mech('overweight',v.cfg))me.push(`行李箱別塞太滿：用掉的空間到 ${OVER_CELLS} 格（整個箱子 ${GRID.w*GRID.h*GRID.d} 格，壓在底下的空隙也算）就算<b>超重</b>——海關可以免費丟掉你一件，後台的 X 光會疊成一團看不清。堆行李卡片上有目前格數`);
+    if(v.role==='traveler'&&mech('overweight',v.cfg))me.push(`行李箱別塞太滿：箱子裡的東西佔到 ${OVER_CELLS} 格（整個箱子 ${GRID.w*GRID.h*GRID.d} 格）就算<b>超重</b>——海關可以免費丟掉你一件，後台的 X 光會疊成一團看不清。堆行李卡片上有目前格數`);
     if(v.role==='backend'&&mech('plant',v.cfg))me.push(v.bad?'通關開始後，你可以<b>栽贓一次</b>：把一件違禁品塞進一位還沒輪到櫃台的普通旅客的行李箱。他被海關扣留，你就拿「最佳栽贓」和表現分。代價：兩位後台都會看到「某某的行李被動過」':'通關時注意「輸送帶紀錄」：壞後台一局可以偷偷往一位旅客的行李箱塞一件違禁品，塞了你就會看到「某某的行李被動過」（不知道哪一件、誰動的）');
     others='同一時間：海關在看通緝名單、後台在讀旅客資料、旅客在堆行李（壞旅客還要背小抄）。準備時間固定跑完，不能提早開始。';
   }else if(v.phase==='inspect'){
@@ -1156,7 +1156,7 @@ function guideHtml(v){
     if(v.role==='traveler'&&v.bad)me.push(`被扣留的話有「最後一擊」：押注兩個螢幕哪個是好後台的。猜中＝好後台不算贏；猜錯＝你和壞後台都輸`);
     if(v.role==='customs')me.splice(4,0,`「後台指認」：後台${(v.flags||[]).length>1?'各':''}可以在 X 光上指一件可疑的東西，你只看得到形狀描述。花 1 點可以只開那一件；開到普通物品算白開、再扣 1 點${(v.flags||[]).length>1?'。兩位後台有一個是內鬼，他指的可能是故意浪費你的點數':''}`);
     if(v.role==='backend')me.push(v.bad?'指認：在櫃台前旅客的 X 光上點一件東西，按「指給海關」（這位旅客只能指一件，另一位後台看不到你指了什麼）。海關花 1 點開它，開到普通物品會再多扣 1 點——你可以故意指普通的東西騙他浪費點數，或是不指':'指認：在櫃台前旅客的 X 光上點一件最可疑的東西，按「指給海關」（這位旅客只能指一件，另一位後台看不到你指了什麼）。海關花 1 點就能只開那一件；指到普通物品會害他多扣 1 點，沒把握可以不指');
-    if(v.role==='customs'&&mech('overweight',v.cfg))me.push(`行李箱<b>超重</b>（用掉 ${OVER_CELLS} 格以上）的旅客，你可以<b>免費丟掉一件</b>：只看得到形狀描述，丟掉就不見了`);
+    if(v.role==='customs'&&mech('overweight',v.cfg))me.push(`行李箱<b>超重</b>（箱子裡的東西佔 ${OVER_CELLS} 格以上）的旅客，你可以<b>免費丟掉一件</b>：只看得到形狀描述，丟掉就不見了`);
     if(v.role==='backend'&&mech('plant',v.cfg))me.push(v.bad?(v.plant&&!v.plant.used?'😈 <b>你還可以栽贓一次</b>：在「栽贓」卡片挑一位還沒輪到的普通旅客和一件違禁品。輸送帶紀錄會讓兩位後台都知道他的行李被動過，你可以搶先反咬':'你已經栽贓過了：等他上櫃台，看海關會不會開到'):'看「輸送帶紀錄」：出現某位旅客的行李被動過，就是壞後台栽贓了。去 X 光找多出來的可疑形狀，用耳機提醒海關（但壞後台也會講，他可能反咬）');
     me.push(`表現分（不影響勝負，結算排名、頒稱號）：${v.role==='customs'?`判對一位 +${PTS.judge}、查到沒申報 +${PTS.found}、收下伴手禮 +${PTS.bribe}`:v.role==='backend'?`投票投對 +${PTS.vote}、指認被開到違禁品 +${PTS.flagHit}${v.bad?`、指認騙海關白開 +${PTS.flagWaste}、通緝犯出境 +${PTS.badHelp}${mech('plant',v.cfg)?`、栽贓成功 +${PTS.plant}`:''}`:''}`:v.bad?`出境 +${PTS.badOut}、海關搜了白搜 +${PTS.fine}、最後一擊押中 +${PTS.strike}`:`出境 +${PTS.goodOut}、出境又完成任務再 +${PTS.goodTask}、投票投對 +${PTS.vote}`}`);
     me.push(...scrGuide(v));
@@ -1538,7 +1538,7 @@ function strikeHtml(v){
 function overHtml(v){
   const o=v.over;if(!o)return '';
   if(o.dump)return `<p class="dim">⚖️ 這個箱子超重，你已經丟掉了「${o.dump.m?'金屬':'非金屬'}・${esc(o.dump.x)}」${o.dump.n?`（${esc(o.dump.n)}）`:''}。</p>`;
-  return `<div class="note" style="margin:8px 0"><b>⚖️ 行李箱超重</b>（用掉 ${o.load}／${GRID.w*GRID.h*GRID.d} 格，${o.max} 格以上算超重）：可以<b>免費丟掉一件</b>，這位旅客只能丟一次。${o.items.some(i=>i.n)?'':'你只看得到形狀描述，'}丟掉的東西就不見了。<div style="margin-top:4px">${o.items.map(i=>btn(`🗑️ ${i.m?'金屬':'非金屬'}・${esc(i.x)}${i.n?`（${esc(i.n)}）`:''}`,{a:'dump',item:i.k},'sm')).join('')}</div></div>`;
+  return `<div class="note" style="margin:8px 0"><b>⚖️ 行李箱超重</b>（佔了 ${o.load}／${GRID.w*GRID.h*GRID.d} 格，${o.max} 格以上算超重）：可以<b>免費丟掉一件</b>，這位旅客只能丟一次。${o.items.some(i=>i.n)?'':'你只看得到形狀描述，'}丟掉的東西就不見了。<div style="margin-top:4px">${o.items.map(i=>btn(`🗑️ ${i.m?'金屬':'非金屬'}・${esc(i.x)}${i.n?`（${esc(i.n)}）`:''}`,{a:'dump',item:i.k},'sm')).join('')}</div></div>`;
 }
 // 後台：輸送帶紀錄（兩位後台都看得到，海關看不到）
 function beltHtml(v){
@@ -1559,7 +1559,7 @@ function plantHtml(v){
     :'<p class="warn" style="margin:0">現在沒有可以栽贓的對象：後面排隊的都不是普通旅客，或都已經判完了。</p>'}</div>`;
 }
 // 旅客：行李箱用掉幾格（超重提示）
-const loadHtml=v=>v.load==null?'':`<div class="${v.load>=v.overMax?'alert':'permit'}" style="font-weight:400;margin:0 0 6px">⚖️ 行李箱目前用掉 <b>${v.load}</b>／${GRID.w*GRID.h*GRID.d} 格空間（${v.overMax} 格以上＝<b>超重</b>）${v.load>=v.overMax?'：<b>已經超重了！</b>海關可以免費丟掉你一件，後台的 X 光會疊成一團看不清':'。每一格從箱底算到最上面那件東西，壓在底下的空隙也算'}</div>`;
+const loadHtml=v=>v.load==null?'':`<div class="${v.load>=v.overMax?'alert':'permit'}" style="font-weight:400;margin:0 0 6px">⚖️ 行李箱目前佔了 <b>${v.load}</b>／${GRID.w*GRID.h*GRID.d} 格（${v.overMax} 格以上＝<b>超重</b>）${v.load>=v.overMax?'：<b>已經超重了！</b>海關可以免費丟掉你一件，後台的 X 光會疊成一團看不清':'。算的是箱子裡每件東西實際佔的格子，藏在身上的不算'}</div>`;
 function inspectHtml(v){
   let h=queueBar(v)+pressHtml(v)+strikeCard(v)+voteHtml(v);
   h+=askHtml(v)+tierHtml(v)+poolHtml(v);
