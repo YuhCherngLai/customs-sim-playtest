@@ -117,7 +117,7 @@ button.mechb{flex:none;white-space:nowrap}   /* 大廳的機制開關 */
 <li><b>指認抽查</b>：每位後台可以在櫃台前旅客的 X 光上指一件可疑的東西（兩位後台看不到彼此指了什麼）。海關只看得到那一件的形狀描述，花 1 點可以單獨開左邊或右邊指的那一件；開到普通物品算白開、再扣 1 點。花 2 點開整個行李箱的做法照舊。</li>
 <li data-mech="press"><b>排隊抱怨值</b>：櫃台後面每多一個人在等，抱怨值每秒 +0.7。漲到 50 海關行動點數 −1；漲到 100 長官介入，櫃台這位最多只剩 20 秒，抱怨值降回 60。60 秒內判完一位可以消掉 25。</li>
 <li data-mech="declare"><b>申報</b>：旅客準備時勾申報單。海關搜查（開行李、取出、透視、開後台指的）查到沒申報的東西拿回 2 點；搜了卻沒查到，下判時賠 2 點。</li>
-<li data-mech="bribe"><b>賄賂</b>：櫃台前的旅客可以遞一件行李當伴手禮：海關收下就必須放行（海關表現分 +1，不加行動點數），收到通緝犯的海關直接輸；收賄結算時公開。</li>
+<li data-mech="bribe"><b>賄賂</b>：櫃台前的旅客可以遞一件行李當伴手禮（每位一次）。海關只有 5 秒決定，這 5 秒內不能翻通緝名單；時間到沒決定＝拒收。收下拿回 2 點（表現分也 +1），但必須立刻放行；收到通緝犯的賄賂海關直接輸。收賄紀錄結算公開。普通旅客的任務可能就是「讓海關收下你的伴手禮」，所以遞伴手禮不等於有罪。</li>
 <li data-mech="vote"><b>公開投票</b>：海關下判前，兩位後台和不在櫃台前的旅客各投放行／扣留，所有人看得到誰投什麼，結算公開並標出投對投錯。</li>
 <li data-mech="strike"><b>最後一擊</b>：通緝犯被扣留時可以押注兩個螢幕哪個是好後台的：猜中＝好後台不算贏；猜錯＝通緝犯和壞後台都輸。也可以放棄。</li>
 <li data-mech="plant"><b>栽贓</b>：壞後台一局一次，通關開始後（行李已經上輸送帶）可以把一件違禁品塞進一位<b>還沒輪到櫃台的普通旅客</b>的行李箱空位；箱子塞滿就塞不進去。被栽贓的旅客自己的畫面看不到那件，但 X 光照得到、海關開箱或抽查會開到，而且它當然沒申報。代價：兩位後台都會看到「輸送帶紀錄：某某的行李被動過」（不知道哪一件、誰動的），海關看不到。那位旅客被海關扣留＝栽贓成功（表現分）。結算公開。</li>
@@ -207,7 +207,7 @@ const legitFor=job=>CONTRA.filter(c=>job in c[4]);
 const TASK_GOOD=['讓海關親口說出「歡迎」','讓海關笑出聲','審問中自然提到三種食物','反問海關一個問題並得到回答','讓海關對你用一次金屬探測','讓海關重複一次你說過的話'];
 const TASK_BAD=['審問中說出「炸彈」兩個字而沒被追問','讓海關全程沒開你的行李箱','讓海關為了你回頭偷看螢幕一次','故意答錯一題個資而沒被拆穿','讓海關對你說「不好意思」','讓海關在你身上花不到 2 點行動點數'];
 // 好旅客的任務改由系統判定（TASK_GOOD 不再發給好旅客）：每一項都是壞旅客本來就會做的事，好旅客做了會更像壞人
-const SYS_TASK={peek3:'審問中抬頭看螢幕 3 次以上，而且還是被放行',metal:'把一件金屬物品藏在身上帶過關',late:'撐到倒數剩 20 秒以內才被判，而且被放行'};
+const SYS_TASK={peek3:'審問中抬頭看螢幕 3 次以上，而且還是被放行',metal:'把一件金屬物品藏在身上帶過關',late:'撐到倒數剩 20 秒以內才被判，而且被放行',bribe:'讓海關收下你的伴手禮'};
 const TASK_PEEK_N=3,TASK_LATE_MS=20000;
 const GESTURE=['摸了摸鼻子','抓了抓頭','咳了兩聲','眨了眨眼','聳了聳肩','拉了拉耳朵','比了個讚','看了看手錶'];
 // 後台螢幕的通用定型文（跟旅客資料有關的定型文在開局時依每位旅客產生）
@@ -303,7 +303,7 @@ function genPhrases(id){
 const phraseText=(k,v)=>`${ID_LABEL[k]}：${v}${k==='age'?' 歲':k==='days'?' 天':''}`;
 
 const taskMetalOk=it=>it.m&&cells(it.sh,0).length<=BODY_MAX_CELLS;   // 金屬、而且小到藏得到身上
-const pickSysTask=items=>pick(Object.keys(SYS_TASK).filter(k=>k!=='metal'||items.some(taskMetalOk)));
+const pickSysTask=items=>pick(Object.keys(SYS_TASK).filter(k=>(k!=='metal'||items.some(taskMetalOk))&&(k!=='bribe'||mech('bribe',G.cfg))));
 const taskSlot=id=>(SLOTS.find(q=>q.id===id)||{label:'身上'}).label;
 // 判決當下由主機結算好旅客的任務（要在 nextTurn() 把抬頭次數歸零之前呼叫）
 function judgeTask(p,v,auto){
@@ -316,7 +316,8 @@ function judgeTask(p,v,auto){
     const on=t.items.filter(i=>i.m&&i.loc==='body'&&!i.seen),out=t.items.filter(i=>i.m&&i.loc==='body'&&i.seen);
     ok=on.length>0;
     d=ok?`金屬物品藏在${on.map(i=>`${taskSlot(i.slot)}（${i.n}）`).join('、')}，沒被取出`:out.length?`金屬物品被海關從${out.map(i=>`${taskSlot(i.slot)}（${i.n}）`).join('、')}取出了`:'身上沒有藏金屬物品（都放在行李箱）';
-  }else{ok=left<=TASK_LATE_MS;d=auto?'拖到超時才被判（算 20 秒以內）':`被判時倒數還剩 ${sec} 秒（要 ${TASK_LATE_MS/1000} 秒以內）`}
+  }else if(t.taskKind==='bribe'){ok=!!t.bribed;d=t.bribed?`海關收下了「${t.bribe.n}」`:t.bribe?`海關沒收下「${t.bribe.n}」`:'沒有遞伴手禮'}
+  else{ok=left<=TASK_LATE_MS;d=auto?'拖到超時才被判（算 20 秒以內）':`被判時倒數還剩 ${sec} 秒（要 ${TASK_LATE_MS/1000} 秒以內）`}
   t.taskDone=ok&&pass;
   t.taskDetail=d+(pass?'，而且被放行':'，但是被抓了')+(t.taskDone?' → 完成':' → 未完成');
 }
@@ -330,7 +331,8 @@ function taskLive(pid){
     const on=t.items.filter(i=>i.m&&i.loc==='body'&&!i.seen),out=t.items.filter(i=>i.m&&i.loc==='body'&&i.seen);
     if(on.length)text=`金屬物品目前在：${on.map(i=>`${taskSlot(i.slot)}（${i.n}）`).join('、')}`+(G.phase==='prep'?'':'，沒被海關取出就算');
     else{warn=true;text=out.length?`金屬物品已經被海關從${out.map(i=>taskSlot(i.slot)).join('、')}取出，任務失敗了`:G.phase==='prep'?`金屬物品還在行李箱，要藏到身上才算（可以藏的：${t.items.filter(taskMetalOk).map(i=>i.n).join('、')}）`:'金屬物品還在行李箱，準備時間已經結束，這個任務完成不了了'}
-  }else text=`倒數剩 ${TASK_LATE_MS/1000} 秒內被判才算（看畫面上方的倒數；拖到超時也算，但超時是系統隨機判）`;
+  }else if(k==='bribe'){text=t.bribe?(t.bribe.st==='offer'?`遞出了「${t.bribe.n}」，等海關決定`:`海關拒收了「${t.bribe.n}」，任務失敗了`):G.phase==='prep'?'輪到你在櫃台前時，遞一件行李當伴手禮（只能一次）；海關收下就算完成':'在櫃台前遞一件行李當伴手禮（只能一次），海關收下就算完成';warn=!!(t.bribe&&t.bribe.st==='no')}
+  else text=`倒數剩 ${TASK_LATE_MS/1000} 秒內被判才算（看畫面上方的倒數；拖到超時也算，但超時是系統隨機判）`;
   return {kind:k,over:false,done:false,text,warn};
 }
 // ───────── 螢幕版本（0 原版／A 特徵詞／B 點題搶答／C＝A＋B；細節見 mini/NOTES_screen.md） ─────────
@@ -457,6 +459,7 @@ const curPid=()=>G.phase==='inspect'?G.queue[G.cur]:null;
 const DECL_REFUND=2,DECL_FINE=2,STRIKE_SEC=25;
 // ───────── 表現分（不影響勝負，只用來結算排名、頒稱號）＋栽贓＋超重 ─────────
 // 每一種加分事件一個數值，要調整只改這裡；文字說明在 score() 呼叫的地方
+const BRIBE_AP=2,BRIBE_MS=5000;   // 收下伴手禮拿回的點數；海關只有 5 秒決定收不收
 const PTS={judge:1,found:1,bribe:1,vote:1,steer:1,flagHit:1,flagWaste:1,goodOut:1,goodTask:1,badOut:2,badHelp:1,fine:1,plant:3,strike:2};
 const PLANT_OPTS=5;    // 壞後台栽贓時可以挑的違禁品數（開局抽，至少一件 1 格的小東西）
 const OVER_CELLS=14;   // 行李箱裡的東西實際佔到這麼多格就算超重（整個箱子 GRID 3×3×3＝27 格）
@@ -466,7 +469,7 @@ const bagLoad=items=>items.filter(i=>i.loc==='bag').reduce((a,i)=>a+cells(i.sh,0
 // ───────── 這局套用的機制：房主在大廳勾選，存在 G.cfg[k]（沒設定＝開）。之後的機制往 MECHS 裡加就好 ─────────
 const MECHS=[
   {k:'declare',name:'📋 申報制',desc:'旅客準備時勾申報單；海關搜到沒申報的東西拿回 2 點，搜了卻沒搜到要賠 2 點'},
-  {k:'bribe',name:'🎁 賄賂',desc:'櫃台前的旅客可以遞一件行李當伴手禮；海關收下就必須放行，收到通緝犯的海關直接輸'},
+  {k:'bribe',name:'🎁 賄賂',desc:'櫃台前的旅客可以遞一件行李當伴手禮；海關 5 秒內決定（不能看名單），收下 +2 點但必須放行，收到通緝犯的海關直接輸'},
   {k:'vote',name:'🗳️ 公開投票',desc:'海關下判前，後台和其他旅客各投放行／扣留，誰投什麼全部公開'},
   {k:'strike',name:'💥 最後一擊',desc:'通緝犯被扣留時可以押注哪個螢幕是好後台的：猜中好後台不算贏，猜錯通緝犯和壞後台都輸'},
   {k:'press',name:'😤 排隊抱怨值',desc:'後面有人在等就一直漲：到 50 海關 −1 點，到 100 長官介入、這位只剩 20 秒'},
@@ -665,12 +668,12 @@ function act(pid,m){
     }break;
   case 'bribe':if(r&&r.role==='traveler'&&pid===cp&&!ct.bribe&&mech('bribe',G.cfg)){   // 遞伴手禮：每位旅客一次
       const it=ct.items[m.i];if(!it||it.pl||it.loc==='gift'||it.loc==='dump'||(it.loc==='body'&&ct.taken[it.slot]!=null))break;
-      ct.bribe={i:m.i,n:it.n,st:'offer'};G.clog.push(`🎁 旅客偷偷遞上伴手禮：${it.n}`);
+      ct.bribe={i:m.i,n:it.n,st:'offer',until:now+BRIBE_MS};G.clog.push(`🎁 旅客偷偷遞上伴手禮：${it.n}`);
     }break;
   case 'bribeAns':if(r&&r.role==='customs'&&ct&&ct.bribe&&ct.bribe.st==='offer'){
       if(m.ok){
         const it=ct.items[ct.bribe.i];it.loc='gift';it.slot=null;settle(ct.items);
-        ct.bribe.st='took';ct.bribed=true;score(pid,'bribe',`收下 ${ct.passName} 的伴手禮「${ct.bribe.n}」`);G.clog.push(`🎁 收下了「${ct.bribe.n}」（表現分 +${PTS.bribe}），只能放行`);
+        ct.bribe.st='took';ct.bribed=true;G.ap+=BRIBE_AP;score(pid,'bribe',`收下 ${ct.passName} 的伴手禮「${ct.bribe.n}」`);G.clog.push(`🎁 收下了「${ct.bribe.n}」（+${BRIBE_AP} 點），只能放行`);
         verdict('pass',false);
       }else{ct.bribe.st='no';G.clog.push('🎁 拒收了伴手禮')}
     }break;
@@ -879,7 +882,7 @@ function viewFor(pid){
         {active:!!ct,key:'t'+G.cur,slots:SLOTS,scanned:ct?ct.scanned:{},taken:ct?ct.taken:{},ap:G.ap,passport:ct?{name:ct.passName,looks:ct.looks}:null,
          tools:G.loadout.picked,tMax:G.cfg.turn,swab:ct?ct.swab:{},seen:ct?ct.xeye:{},wave:ct?ct.wave:null,dog:ct?ct.dog:null,heard:ct?ct.heard:{},kinds:KINDS},
       wanted:G.wanted,decl:ct&&mech('declare',G.cfg)?ct.items.filter(i=>i.dec&&i.loc!=='gift').map(i=>i.n):null,searched:!!(ct&&ct.searched),found:!!(ct&&ct.found),
-      bribe:ct&&ct.bribe?{n:ct.bribe.n,st:ct.bribe.st}:null});
+      bribe:ct&&ct.bribe?{n:ct.bribe.n,st:ct.bribe.st,late:!!ct.bribe.late,left:ct.bribe.st==='offer'?Math.max(0,ct.bribe.until-now):0}:null});
     // 後台指認：海關只拿到形狀描述與材質；付點數開過的那一件才有名稱
     if(G.phase==='inspect'&&ct&&(isOver(ct)||ct.dump))v.over={load:bagLoad(ct.items),max:OVER_CELLS,dump:ct.dump?{x:ct.dump.x,m:ct.dump.m,...(ct.opened?{n:ct.dump.n}:{})}:null,items:ct.dump?[]:bagItems(ct).map((i,k)=>({k,x:i.x,m:!!i.m,...(ct.opened?{n:i.n}:{})}))};   // 超重：可以免費丟一件
     v.flags=G.phase==='inspect'&&ct?G.backs.map(b=>{const f=G.flags[b],it=f&&bagItems(ct)[f.item];return it?{x:it.x,m:!!it.m,opened:f.opened,...(f.opened?{n:it.n}:{})}:null}):[];
@@ -906,7 +909,7 @@ function viewFor(pid){
       tools:t.items.filter(i=>i.lg).map(i=>({n:i.n,why:i.why})),customsTools:G.loadout.picked.filter(x=>x!==G.loadout.secret),customsSecret:!!G.loadout.secret,task:t.task,taskDone:t.taskDone,at,pos:idx-G.cur,myVerdict:t.verdict,
       memoir:r.bad?null:memoir(t.id,t.clear),sheet:r.bad&&sheetOn?t.id:null,peek:r.bad&&at&&now<G.peekUntil});
     if(!r.bad)v.taskSys=taskLive(pid);
-    v.bribe=t.bribe?{n:t.bribe.n,st:t.bribe.st}:null;v.strike=t.strike;
+    v.bribe=t.bribe?{n:t.bribe.n,st:t.bribe.st,late:!!t.bribe.late,left:t.bribe.st==='offer'?Math.max(0,t.bribe.until-now):0}:null;v.strike=t.strike;
     if(mech('overweight',G.cfg)){v.load=bagLoad(t.items.filter(i=>!i.pl));v.overMax=OVER_CELLS}v.dumped=t.items.filter(i=>i.loc==='dump'&&!i.pl).map(i=>i.n);   // 格數不算被栽贓的那件，免得露餡
   }
   return v;
@@ -928,6 +931,7 @@ function tick(){
   if(G.phase==='inspect'&&G.peek.on&&now-G.peek.start>=PEEK_MAX)peekDown(now);
   if(!sim)for(const p of G.players)if(p.pid!==G.hostPid)p.on=now-(lastSeen[p.pid]||0)<8000;
   if(G.phase==='inspect'&&mech('press',G.cfg))pressTick(now);
+  {const c=curPid()&&G.trav[curPid()];if(c&&c.bribe&&c.bribe.st==='offer'&&now>=c.bribe.until){c.bribe.st='no';c.bribe.late=true;G.clog.push(`🎁 ${BRIBE_MS/1000} 秒到了沒決定，算拒收`)}}   // 伴手禮超時＝拒收
   if(G.phase==='prep'&&now>=G.deadline)startInspect();
   else if(G.phase==='inspect'&&now>=G.deadline)verdict(pick(['pass','arrest']),true);
   else if(G.phase==='strike'&&(now>=G.deadline||!strikePending()))endGame();
@@ -1150,7 +1154,7 @@ function guideHtml(v){
     else if(v.myVerdict)me=v.bad?['你已經判完了，可以旁聽後面的審問','任務如果完成了，記得按「我完成任務了」']:['你已經判完了，可以旁聽後面的審問','你的任務系統已經判定好了，結果寫在下面的「專屬任務」'];
     else if(v.at)me=v.bad?['用語音回答海關，小抄已經被收走，靠記憶講','海關一回頭就趕快偷看小抄（只有 4 秒）','按住「抬頭看螢幕」才看得到海關背後的螢幕（其中一位後台是內鬼，提示不一定是真的）；海關盯著你的時候抬頭會被發現。也可以比動作','想辦法完成專屬任務，完成就按鈕']:['用語音回答海關：回憶錄只有大概，把它換成自己的話講，被追問精確數字就合理地估','想辦法完成專屬任務：系統會自動判定、不用按鈕，進度寫在下面（要出境＋完成任務才算贏）','按住「抬頭看螢幕」才看得到海關背後的螢幕（其中一位後台是內鬼，提示不一定是真的）；海關盯著你的時候抬頭會被發現。也可以比動作'];
     else me=v.bad?['還沒輪到你，趁小抄還在趕快再背一次','聽海關都問些什麼問題']:['還沒輪到你，先聽海關都問些什麼問題'];
-    if(v.role==='customs')me.splice(1,0,`先看「申報單」：搜查抓到沒申報的東西拿回 ${DECL_REFUND} 點；搜了卻沒抓到，下判時賠 ${DECL_FINE} 點`,`旅客可能偷遞伴手禮：收下就必須放行（表現分 +${PTS.bribe}，不加行動點數），收到通緝犯的你直接輸`,'看「公開投票」：後台和其他旅客各投放行／扣留，票全部公開、結算留紀錄。內鬼的票通常有規律');
+    if(v.role==='customs')me.splice(1,0,`先看「申報單」：搜查抓到沒申報的東西拿回 ${DECL_REFUND} 點；搜了卻沒抓到，下判時賠 ${DECL_FINE} 點`,`旅客可能偷遞伴手禮：你只有 ${BRIBE_MS/1000} 秒決定、這段時間不能翻通緝名單；收下就必須放行（+${BRIBE_AP} 點），收到通緝犯的你直接輸。有些普通旅客的任務就是讓你收下，遞伴手禮不等於有罪`,'看「公開投票」：後台和其他旅客各投放行／扣留，票全部公開、結算留紀錄。內鬼的票通常有規律');
     if(v.role==='backend'||(v.role==='traveler'&&!v.at))me.push('「公開投票」：海關下判前投放行或扣留，可以改票；誰投了什麼全部公開，結算會對答案');
     if(v.role==='traveler'&&v.at&&!v.myVerdict)me.push('可以偷偷遞一件行李當伴手禮（賄賂，只能一次）：海關收下就一定要放行');
     if(v.role==='traveler'&&v.bad)me.push(`被扣留的話有「最後一擊」：押注兩個螢幕哪個是好後台的。猜中＝好後台不算贏；猜錯＝你和壞後台都輸`);
@@ -1503,15 +1507,15 @@ function declHtml(v){
 }
 function bribeHtml(v){
   const b=v.bribe;if(!b)return '';
-  if(b.st==='offer')return `<div class="note pr-head" style="align-items:flex-start">${prop('gift',56)}<div>🎁 旅客偷偷遞上伴手禮：${ico(b.n)}<b>${esc(b.n)}</b>。收下就<b>必須放行</b>、不能再搜（表現分 +${PTS.bribe}，不加行動點數）；收的萬一是通緝犯的，你直接輸。收之前可以先比對通緝名單。<div style="margin-top:4px">${btn('🎁 收下並放行',{a:'bribeAns',ok:true},'go')}${btn('拒收',{a:'bribeAns',ok:false},'no')}</div></div></div>`;
-  return b.st==='no'?'<p class="dim">🎁 你拒收了這位旅客的伴手禮。</p>':'';
+  if(b.st==='offer')return `<div class="note pr-head" style="align-items:flex-start">${prop('gift',56)}<div>🎁 旅客偷偷遞上伴手禮：${ico(b.n)}<b>${esc(b.n)}</b>　<b class="big warn">剩 ${Math.ceil(b.left/1000)} 秒</b><br>收下就<b>必須放行</b>（+${BRIBE_AP} 點）；收的萬一是通緝犯的，你直接輸。<b>這 ${BRIBE_MS/1000} 秒內不能翻通緝名單</b>，只能靠記憶和直覺；時間到沒決定＝拒收。<div style="margin-top:4px">${btn('🎁 收下並放行',{a:'bribeAns',ok:true},'go')}${btn('拒收',{a:'bribeAns',ok:false},'no')}</div></div></div>`;
+  return b.st==='no'?`<p class="dim">🎁 ${b.late?'時間到沒決定，算你拒收了':'你拒收了'}這位旅客的伴手禮。</p>`:'';
 }
 // 旅客在櫃台前：遞伴手禮（賄賂）
 function bribeOffer(v){
   if(!v.at||v.myVerdict)return '';
   const b=v.bribe;
-  if(b)return `<h3>🎁 伴手禮</h3><p>${b.st==='offer'?`你遞出了「${esc(b.n)}」，等海關決定收不收`:b.st==='no'?`海關拒收了「${esc(b.n)}」，這位旅客只能送一次`:`海關收下了「${esc(b.n)}」`}</p>`;
-  return `<h3 class="pr-head">${prop('gift',36)}🎁 遞伴手禮（賄賂，只能一次）</h3><p class="dim" style="margin:0 0 4px">送出一件行李。海關收下就一定要放行；收賄紀錄結算時公開。送出去的東西就沒了。</p><div>${v.items.filter(i=>!(i.loc==='body'&&v.passport&&false)).map(i=>btn(ico(i.n,i.c)+esc(i.n),{a:'bribe',i:i.i},'sm')).join('')}</div>`;
+  if(b)return `<h3>🎁 伴手禮</h3><p>${b.st==='offer'?`你遞出了「${esc(b.n)}」，等海關決定收不收（剩 ${Math.ceil(b.left/1000)} 秒）`:b.st==='no'?`海關${b.late?'沒在時間內決定，算拒收':'拒收了'}「${esc(b.n)}」，這位旅客只能送一次`:`海關收下了「${esc(b.n)}」`}</p>`;
+  return `<h3 class="pr-head">${prop('gift',36)}🎁 遞伴手禮（賄賂，只能一次）</h3><p class="dim" style="margin:0 0 4px">送出一件行李。海關只有 ${BRIBE_MS/1000} 秒決定、而且這段時間不能翻通緝名單；收下就一定要放行，時間到沒決定＝拒收。收賄紀錄結算時公開，送出去的東西就沒了。</p><div>${v.items.filter(i=>!(i.loc==='body'&&v.passport&&false)).map(i=>btn(ico(i.n,i.c)+esc(i.n),{a:'bribe',i:i.i},'sm')).join('')}</div>`;
 }
 // 公開投票：海關下判前大家各投一票，誰投什麼全部公開、結算留紀錄
 function voteHtml(v){
@@ -1569,7 +1573,7 @@ function inspectHtml(v){
     if(v.looking)h+=`<div class="card wide"><h2>👀 你回頭看了背後的螢幕</h2>${screensHtml(v.screens)}</div>`;
     h+=`<div class="card"${b}><h2>🛂 櫃台前的旅客</h2><p>護照姓名：<b class="big">${esc(pp.name)}</b> <span class="dim">（玩家 ${esc(pp.player)}）</span></p>${lk(pp.looks,88,pp.deco)}
       <h3>行動點數：<b class="big warn">${v.ap}</b></h3>
-      <div>${btn(v.opened?'🧳 再看一次行李箱':'🧳 開行李箱（−2）',{a:'open'},'',!v.opened&&v.ap<2)}${btn(ui.wanted?'📋 收起通緝名單':'📋 翻開通緝名單',{local:'wanted'})}${btn('👀 回頭偷看螢幕',{a:'look'},'',v.looking)}</div>
+      <div>${btn(v.opened?'🧳 再看一次行李箱':'🧳 開行李箱（−2）',{a:'open'},'',!v.opened&&v.ap<2)}${btn(ui.wanted?'📋 收起通緝名單':'📋 翻開通緝名單',{local:'wanted'},'',!!(v.bribe&&v.bribe.st==='offer'))}${btn('👀 回頭偷看螢幕',{a:'look'},'',v.looking)}</div>
       ${flagHtml(v)}${overHtml(v)}${declHtml(v)}${bribeHtml(v)}
       <h3>旅客的動作</h3><p class="dim" style="margin:0 0 4px">按住「盯著旅客的眼睛」才知道他有沒有偷看你背後的螢幕；你自己回頭的時候盯不到。</p><div data-mini="gesture"></div>
       <h3>下判：把印章拖到護照上</h3><div class="stampdesk"><div class="pzone" id="pzone">${face(pp.looks,64,'#e9dcc0')}<div><b style="font-size:17px">${esc(pp.name)}</b><div style="font-size:12px">PASSPORT・護照（把印章拖到這裡）</div></div></div>
@@ -1577,7 +1581,7 @@ function inspectHtml(v){
       <div class="card"${b}><h2>🧰 海關工具箱</h2><div data-mini="metal"></div></div>
       <div class="card"${b}><h2>🗒️ 檢查結果（只有你看得到）</h2><div class="log">${v.clog.map(l=>`<div>${esc(l)}</div>`).join('')}</div>
       <h2 style="margin-top:12px">🎧 耳機（兩位後台，其中一個是內鬼）</h2>${chatLog(v)}</div>`;
-    if(ui.wanted)h+=`<div class="card wide"${b}><h2>📋 通緝名單 ${btn('收起',{local:'wanted'},'sm')}</h2>${wantedTable(v.wanted)}</div>`;
+    if(ui.wanted&&!(v.bribe&&v.bribe.st==='offer'))h+=`<div class="card wide"${b}><h2>📋 通緝名單 ${btn('收起',{local:'wanted'},'sm')}</h2>${wantedTable(v.wanted)}</div>`;
   }else if(v.role==='backend'){
     h+=beltHtml(v)+plantHtml(v);
     h+=`<div class="card">${v.lookAlert?'<div class="alert">👀 海關正在回頭看螢幕！</div>':''}<h2>🎧 對海關講話（旅客看不到）</h2>
@@ -1656,7 +1660,7 @@ function localAct(m){
     joinRoom(code);
   }
   else if(m.local==='mute'){muted=!muted;try{localStorage.cs_mute=muted?'1':'0'}catch(e){}render()}
-  else if(m.local==='wanted'){ui.wanted=!ui.wanted;render()}
+  else if(m.local==='wanted'){if(V&&V.bribe&&V.bribe.st==='offer')return;ui.wanted=!ui.wanted;render()}   // 伴手禮倒數中不能翻名單
 }
 // 下判：把印章拖到護照上才算（點一下不算，避免手滑）
 let drag=null;
