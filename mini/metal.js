@@ -208,6 +208,16 @@
     return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
   }
   function play(name) { try { if (api && api.play) api.play(name); } catch (e) { /* 音效失敗不影響遊戲 */ } }
+  // 充能時的嗶聲越來越高（主頁有合成器就用，沒有就退回 tick）
+  function chirp(p) { try { if (api && api.sfx) api.sfx.tone(320 + p * 900, 45, 'square', 0.05); else play('tick'); } catch (e) { /* 同上 */ } }
+  function alarm() {
+    try {
+      if (!api || !api.sfx) return;
+      api.sfx.tone(1500, 150, 'square', 0.12);
+      setTimeout(function () { api.sfx.tone(1500, 150, 'square', 0.12); }, 200);
+      api.sfx.buzz([90, 50, 90, 50, 180]);
+    } catch (e) { /* 同上 */ }
+  }
   function send(msg) { try { api.send(msg); } catch (e) { /* 交給逾時重試 */ } }
   function later(fn, ms) {
     var id = setTimeout(function () {
@@ -564,7 +574,7 @@
         if (lv > MIC_TH) hold.acc += dt;
       } else { ms = CALL_FALLBACK_MS; hold.acc += dt; }
     } else hold.acc += dt;
-    while (hold.acc >= hold.ticks * TICK_MS) { hold.ticks++; play('tick'); }
+    while (hold.acc >= hold.ticks * TICK_MS) { hold.ticks++; chirp(Math.min(1, hold.acc / ms)); }
     var p = Math.min(1, hold.acc / ms);
     if (hold.bar) hold.bar.style.width = (p * 100).toFixed(1) + '%';
     if (hold.tool === 'wave') { el.sweep.style.display = 'block'; el.sweep.style.top = (p * 100).toFixed(1) + '%'; }
@@ -624,7 +634,7 @@
     setHot(can);
     if (charge) {
       var ms = TOOLS[curTool].ms, t = now - charge.start, p = Math.min(1, t / ms);
-      while (charge.ticks < Math.floor(ms / TICK_MS) && t >= charge.ticks * TICK_MS) { charge.ticks++; play('tick'); }
+      while (charge.ticks < Math.floor(ms / TICK_MS) && t >= charge.ticks * TICK_MS) { charge.ticks++; chirp(p); }
       if (p >= 1) {
         var slot = charge.slot;
         charge = null;
@@ -788,6 +798,7 @@
       if (pending[k] && r.v !== pendingV[k]) { delete pending[k]; delete pendingV[k]; }
       if (!isNew || baseline) return;
       play(r.pos ? 'beep' : 'pop');
+      if (r.pos) alarm();
       if (r.slot) {
         var slot = r.slot;
         flash[slot] = true;

@@ -6,6 +6,8 @@
 const TW=92,TH=46,ZH=38,PAD=16;
 const COLORS=['#5fb3ff','#ffb454','#b78cff','#55d38a','#ff8fb1','#ffd84d'];
 let root=null,api=null,st=null,sel=null,rot=0,hover=null,sig='',hsig='',msg='',msgT=0;
+let prevPos=null,dropAt={},lidAt=0,wasEdit=null;   // 剛落地的東西、剛蓋上的箱蓋：動畫只在那一瞬間播
+const fresh=(t,ms)=>performance.now()-t<ms;
 
 const CSS=`
 .mp3-wrap{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
@@ -30,6 +32,10 @@ const CSS=`
 .mp3-hint{color:var(--dim,#93a0b5);font-size:13px;margin:4px 0}
 .mp3-hit{fill:transparent;cursor:pointer}
 .mp3-cube{cursor:pointer}
+.mp3-drop{animation:mp3drop .42s cubic-bezier(.25,1.6,.5,1)}
+@keyframes mp3drop{0%{transform:translateY(-90px);opacity:.2}100%{transform:none;opacity:1}}
+.mp3-lidin{animation:mp3lid .6s cubic-bezier(.3,1.4,.5,1)}
+@keyframes mp3lid{0%{transform:translateY(-130px);opacity:0}100%{transform:none;opacity:1}}
 `;
 
 const P=(x,y,z,o)=>[o.x+(x-y)*TW/2,o.y+(x+y)*TH/2-z*ZH];
@@ -42,6 +48,7 @@ function cube(x,y,z,o,fill,extra,op){
   const shade=(pts,k)=>poly(pts,a)+poly(pts,`fill="#000" opacity="${op?k*op:k}" pointer-events="none"`);
   return shade(left,.22)+shade(right,.4)+poly(top,a);
 }
+const cubeG=(c,o)=>{const s=cube(c.x,c.y,c.z,o,c.fill,c.extra,c.op);return c.drop?`<g class="mp3-drop">${s}</g>`:s};
 const say=t=>{msg=t;clearTimeout(msgT);msgT=setTimeout(()=>{msg='';draw(true)},1800)};
 const cellCount=it=>cells(it.sh,0).length;
 function anchor(it,x,y,r){   // 把落點夾在箱子裡，避免一靠邊就放不下
@@ -62,7 +69,7 @@ function scene(){
   for(let z=1;z<g.d;z++)s+=`<path d="M${P(0,g.h,z,o)} L${P(0,0,z,o)} L${P(g.w,0,z,o)}" fill="none" stroke="#22344f" stroke-dasharray="3 4"/>`;
   // 方塊（由遠到近、由下到上）
   const cubes=[];
-  for(const it of bag){if(it===cur)continue;for(const [cx,cy] of cells(it.sh,it.r))cubes.push({x:it.gx+cx,y:it.gy+cy,z:it.gz,fill:COLORS[it.i%COLORS.length],extra:`class="mp3-cube" data-i="${it.i}"`})}
+  for(const it of bag){if(it===cur)continue;for(const [cx,cy] of cells(it.sh,it.r))cubes.push({x:it.gx+cx,y:it.gy+cy,z:it.gz,fill:COLORS[it.i%COLORS.length],extra:`class="mp3-cube" data-i="${it.i}"`,drop:dropAt[it.i]&&fresh(dropAt[it.i],450)})}
   let ghost=null;
   if(cur&&hover&&st.editable){
     const [ax,ay]=anchor(cur,hover.x,hover.y,rot),z=dropZ(st.items,cur,ax,ay,rot),ok=z>=0;
@@ -71,7 +78,12 @@ function scene(){
     for(const [cx,cy] of cells(cur.sh,rot))cubes.push({x:ax+cx,y:ay+cy,z:gz,fill:ok?'#55d38a':'#ff6b6b',extra:'pointer-events="none"',op:.6});
   }
   cubes.sort((a,b)=>(a.x+a.y)-(b.x+b.y)||a.z-b.z);
-  for(const c of cubes)s+=cube(c.x,c.y,c.z,o,c.fill,c.extra,c.op);
+  for(const c of cubes)s+=cubeG(c,o);
+  if(!st.editable){   // 準備結束：箱蓋蓋上（半透明，旅客還是看得到自己裝了什麼）
+    const lid=poly([P(0,0,g.d,o),P(g.w,0,g.d,o),P(g.w,g.h,g.d,o),P(0,g.h,g.d,o)],'fill="rgba(95,179,255,.16)" stroke="#8fc4ff" stroke-width="2"');
+    const hd=P(g.w/2,g.h/2,g.d,o);
+    s+=`<g class="${fresh(lidAt,700)?'mp3-lidin':''}" pointer-events="none">${lid}<rect x="${(hd[0]-18).toFixed(1)}" y="${(hd[1]-5).toFixed(1)}" width="36" height="10" rx="5" fill="#8fc4ff" opacity=".7"/></g>`;
+  }
   // 前方箱緣
   s+=`<path d="M${P(g.w,0,0,o)} L${P(g.w,g.h,0,o)} L${P(0,g.h,0,o)}" fill="none" stroke="#5b7fb5" stroke-width="2"/>`;
   return s;
@@ -99,7 +111,7 @@ function side(){
   const where=it=>it.loc==='bag'?`行李箱・第 ${it.gz+1} 層`:'身上・'+((st.slots.find(q=>q.id===it.slot)||{}).label||'');
   let h=st.items.map(it=>`<div class="mp3-item${sel===it.i?' on':''}${st.editable?'':' ro'}" data-sel="${it.i}">
     <span class="mp3-sw" style="background:${COLORS[it.i%COLORS.length]}"></span>
-    <div><b>${api.esc(it.n)}</b>${it.c?'<span class="mp3-tag mp3-bad">違禁品</span>':''}${it.m?'<span class="mp3-tag mp3-metal">金屬</span>':''}
+    <div>${window.Mini&&Mini.props?Mini.props.icon(it.n,it.c):''}<b>${api.esc(it.n)}</b>${it.c?'<span class="mp3-tag mp3-bad">違禁品</span>':''}${it.m?'<span class="mp3-tag mp3-metal">金屬</span>':''}
     <small>X 光：${api.esc(it.x)}・${cellCount(it)} 格</small><small>${where(it)}</small></div></div>`).join('');
   if(st.editable){
     h+=`<div class="mp3-bar">${cur?`<button data-rot="1">⟳ 旋轉（R）</button><button data-cancel="1">取消選取</button>`:''}<span class="mp3-msg">${api.esc(msg)}</span></div>`;
@@ -151,13 +163,18 @@ function onKey(e){if(sel!=null&&(e.key==='r'||e.key==='R')&&!/input|textarea/i.t
 window.Mini=window.Mini||{};
 window.Mini.pack={
   mount(r,a){
-    root=r;api=a;sel=null;hover=null;sig='';
+    root=r;api=a;sel=null;hover=null;sig='';prevPos=null;dropAt={};lidAt=0;wasEdit=null;
     if(!document.getElementById('mp3-style')){const s=document.createElement('style');s.id='mp3-style';s.textContent=CSS;document.head.appendChild(s)}
     root.addEventListener('click',onClick);root.addEventListener('pointermove',onMove);root.addEventListener('mousemove',onMove);root.addEventListener('pointerdown',onMove);
     document.addEventListener('keydown',onKey);
   },
   update(state){
     st=state;
+    const pos={};for(const it of st.items)pos[it.i]=it.loc==='bag'?[it.gx,it.gy,it.gz,it.r].join():'';
+    if(prevPos)for(const k in pos)if(pos[k]&&pos[k]!==prevPos[k]){dropAt[k]=performance.now();if(api.sfx)api.sfx.buzz(25)}
+    prevPos=pos;
+    if(wasEdit===true&&!st.editable){lidAt=performance.now();api.play('thud',350);if(api.sfx)api.sfx.buzz([30,40,60])}
+    wasEdit=!!st.editable;
     if(sel!=null&&(!st.items[sel]||!st.editable)){sel=null;hover=null}
     draw();
   },

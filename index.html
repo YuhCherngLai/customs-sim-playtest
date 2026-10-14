@@ -57,20 +57,73 @@ ul,ol{margin:4px 0;padding-left:22px}
 .permit{font-size:13px;background:#1f2a1c;border:1px solid #3d6b3a;border-radius:8px;padding:6px 10px;margin:8px 0;line-height:1.6}
 button.sw{width:30px;height:30px;padding:0;border-radius:50%;border:2px solid #3d5278}button.sw.on{border-color:var(--warn);box-shadow:0 0 0 2px var(--warn)}
 .simbar{margin-top:10px;border-color:#7c5cff;background:#1c1830}
+button.mechb{flex:none;white-space:nowrap}   /* 大廳的機制開關 */
 #rules{color:var(--dim);font-size:13.5px}#rules summary{cursor:pointer;color:var(--fg)}
+/* 置頂一行：現在要做什麼／能做什麼 */
+.now{flex-basis:100%;display:flex;flex-wrap:wrap;gap:2px 10px;align-items:center;border-top:1px dashed var(--line);padding-top:6px;font-size:15px}
+.now .do{color:var(--warn);font-weight:700}.now.urgent .do{color:var(--bad)}
+.now .can{font-size:12.5px;color:var(--dim)}.now .can span{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:0 8px;margin:1px 2px;color:var(--fg)}
+.now.fresh{animation:nowfresh 1.2s}
+@keyframes nowfresh{0%{background:rgba(255,200,87,.35)}100%{background:transparent}}
+/* 排隊抱怨值 */
+.press{display:flex;gap:6px 12px;align-items:center;flex-wrap:wrap}
+.pbar{flex:1 1 200px;height:14px;background:#0e131b;border:1px solid var(--line);border-radius:999px;position:relative;overflow:hidden}
+.pbar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#55d38a,#ffc857 50%,#ff6b6b);transition:width .25s linear}
+.pbar s{position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,.6)}
+/* 蓋章下判 */
+.stampdesk{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.pzone{flex:1 1 190px;min-height:100px;border:2px dashed #8a6d3b;border-radius:10px;background:#f3e8cf;color:#2a2114;display:flex;gap:10px;align-items:center;padding:8px;position:relative;overflow:hidden}
+.pzone.over{border-color:var(--warn);box-shadow:0 0 0 3px var(--warn)}
+.pzone .imp{position:absolute;right:10px;top:50%;font-weight:900;font-size:26px;border:4px solid;border-radius:8px;padding:0 10px;transform:translateY(-50%) rotate(-14deg);animation:imp .3s}
+@keyframes imp{0%{transform:translateY(-50%) rotate(-14deg) scale(2.4);opacity:0}100%{transform:translateY(-50%) rotate(-14deg) scale(1);opacity:1}}
+.stamps{display:flex;gap:10px}
+.stk{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;width:84px;text-align:center;border-radius:10px 10px 6px 6px;padding:8px 4px 6px;font-weight:900;font-size:17px;border:2px solid;background:#141b28}
+.stk.pass{color:var(--good)}.stk.arrest{color:var(--bad)}
+.stk svg{display:block;margin:0 auto 2px;pointer-events:none}.stk .h{display:block;width:34px;height:26px;margin:0 auto 4px;border-radius:8px 8px 3px 3px;background:#6b4a2a}
+.stk.drag{position:fixed;z-index:60;pointer-events:none;transform:translate(-50%,-70%) rotate(-8deg);box-shadow:0 12px 30px #000;cursor:grabbing}
+.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:none}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-1px)}}
+/* 最後 10 秒 */
+#hurry{position:fixed;inset:0;pointer-events:none;z-index:40}
+#hurry.on{animation:hurry 1s infinite}
+@keyframes hurry{0%,100%{box-shadow:inset 0 0 0 4px rgba(255,107,107,.9)}50%{box-shadow:inset 0 0 50px 12px rgba(255,107,107,.35)}}
+/* 翻牌 */
+.flipcard{width:min(300px,80vw);height:200px;animation:flipfade 3.2s forwards}
+@keyframes flipfade{0%{opacity:0}10%{opacity:1}88%{opacity:1}100%{opacity:0}}
+.flipcard .in{position:relative;width:100%;height:100%;animation:flipin 3.2s forwards}
+.flipcard .f,.flipcard .b{position:absolute;inset:0;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid var(--warn);background:#1a2130;box-shadow:0 14px 40px #000;text-align:center;padding:10px}
+.flipcard .b{font-size:64px;font-weight:900;color:var(--warn);background:repeating-linear-gradient(45deg,#1a2130 0 12px,#202a3d 12px 24px);animation:flipb 3.2s forwards}
+.flipcard .f{font-size:32px;font-weight:900;gap:6px;opacity:0;animation:flipf 3.2s forwards}
+.flipcard .f small{font-size:15px;font-weight:400;color:var(--fg)}
+@keyframes flipin{0%{transform:scale(.6)}12%{transform:scale(1)}25%{transform:scaleX(0)}38%,100%{transform:scaleX(1)}}
+@keyframes flipb{0%,24.9%{opacity:1}25%,100%{opacity:0}}
+@keyframes flipf{0%,24.9%{opacity:0}25%,100%{opacity:1}}
+.flip{animation:rowflip .6s both}
+@keyframes rowflip{0%{transform:rotateX(90deg);opacity:0}100%{transform:none;opacity:1}}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="fx"></div>
+<div id="hurry"></div>
 <details id="rules">
 <summary>📖 規則速查（10/5 組會版・文字試玩）</summary>
 <ul>
 <li><b>語音</b>：大家開 Discord。海關和旅客用講的；<b>後台不要對海關開口</b>，一律用畫面上的「耳機」打字（旅客看不到）。</li>
 <li><b>海關</b>：不知道任何人的陣營。準備時間先看通緝名單，通關時隨時可以再翻開來看（免費，但時間照樣在跑）。每位旅客限時下判：放行或抓人，超時系統隨機判。行動點數整局共用。</li>
 <li><b>後台</b>（一正一反）：看得到所有旅客的條列資料與行李箱 X 光（只有形狀，藏身上的照不到）。<b>壞後台一開始就知道每位旅客的身分，好後台不知道</b>、只能自己猜。每位後台各有一個螢幕，用定型的詞組一句話（有字數上限）秀給櫃台前的旅客看；兩位後台看不到彼此的螢幕。旅客要按住「抬頭看螢幕」才看得到（一次最多 4 秒），海關按住「盯著旅客的眼睛」時會發現他在看。</li>
+<li><b>線索三層</b>：螢幕上每一欄的線索分三層（例如出發地 北方 → 日本 → 大阪；職業 室內工作 → 服務業 → 廚師）。第一層跟好旅客回憶錄一樣模糊、人人能驗證，越細越難驗證——內鬼的謊話藏在細的層級。解鎖方式房主在大廳選：<b>A 隨時間</b>（旅客上櫃台 0／40／80 秒開第一／二／三層；點題版改成第 n 題開到第 n 層）、<b>B 後台自選</b>（隨時可送任何一層，送完冷卻 3／8／15 秒；點題版冷卻跨題照算）、<b>C 旅客解鎖</b>（櫃台前的旅客第 1 次抬頭只看得到第一層、第 2–3 次第二層、第 4 次起第三層，看不到的詞顯示 🔒；海關回頭看到完整的）。特徵詞版的第三層不是答案，而是解鎖特徵詞。每一層的詞查「📋 線索對照表」。也可以選「不分層」，照原本的做法。</li>
 <li><b>行李與搜身</b>：行李箱是 3×3、可以疊三層；超過 3 格的東西藏不了身上。身上有 6 個位置。海關準備時從六招裡選最多 3 招帶上場（金屬探測棒、緝毒犬、毫米波掃描、微量擦拭、透視眼、學動物叫），每招只查得到一種東西；花 2 點可以叫旅客掏出指定位置。旅客看得到海關帶了什麼，但海關可以藏一招。旅客在櫃台「咳了兩聲」可以蓋掉海關的動物叫聲（8 秒才有效一次）。</li>
 <li><b>指認抽查</b>：每位後台可以在櫃台前旅客的 X 光上指一件可疑的東西（兩位後台看不到彼此指了什麼）。海關只看得到那一件的形狀描述，花 1 點可以單獨開左邊或右邊指的那一件；開到普通物品算白開、再扣 1 點。花 2 點開整個行李箱的做法照舊。</li>
+<li data-mech="press"><b>排隊抱怨值</b>：櫃台後面每多一個人在等，抱怨值每秒 +0.7。漲到 50 海關行動點數 −1；漲到 100 長官介入，櫃台這位最多只剩 20 秒，抱怨值降回 60。60 秒內判完一位可以消掉 25。</li>
+<li data-mech="declare"><b>申報</b>：旅客準備時勾申報單。海關搜查（開行李、取出、透視、開後台指的）查到沒申報的東西拿回 2 點；搜了卻沒查到，下判時賠 2 點。</li>
+<li data-mech="bribe"><b>賄賂</b>：櫃台前的旅客可以遞一件行李當伴手禮：海關收下就必須放行（海關表現分 +1，不加行動點數），收到通緝犯的海關直接輸；收賄結算時公開。</li>
+<li data-mech="vote"><b>公開投票</b>：海關下判前，兩位後台和不在櫃台前的旅客各投放行／扣留，所有人看得到誰投什麼，結算公開並標出投對投錯。</li>
+<li data-mech="strike"><b>最後一擊</b>：通緝犯被扣留時可以押注兩個螢幕哪個是好後台的：猜中＝好後台不算贏；猜錯＝通緝犯和壞後台都輸。也可以放棄。</li>
+<li data-mech="plant"><b>栽贓</b>：壞後台一局一次，通關開始後（行李已經上輸送帶）可以把一件違禁品塞進一位<b>還沒輪到櫃台的普通旅客</b>的行李箱空位；箱子塞滿就塞不進去。被栽贓的旅客自己的畫面看不到那件，但 X 光照得到、海關開箱或抽查會開到，而且它當然沒申報。代價：兩位後台都會看到「輸送帶紀錄：某某的行李被動過」（不知道哪一件、誰動的），海關看不到。那位旅客被海關扣留＝栽贓成功（表現分）。結算公開。</li>
+<li data-mech="overweight"><b>超重</b>：行李箱用掉的空間（每一格從箱底算到最上面那件，壓在底下的空隙也算）到 14 格以上就算超重（整個箱子 27 格）。超重的箱子：海關可以免費丟掉一件（只看得到形狀描述，丟掉就沒了，每位旅客一次）；後台的 X 光疊成一團看不清，也沒辦法指認。旅客堆行李時看得到目前格數。</li>
+<li><b>表現分</b>：不影響勝負，只用來在結算排名、頒稱號，全部由系統判定。海關：判對一位 +1、查到沒申報 +1、收下伴手禮 +1。後台：投票投對 +1、指認被開到違禁品 +1；壞後台另有指認騙海關白開 +1、掩護的通緝犯出境 +1<span data-mech="plant">、栽贓成功 +3</span>。旅客：普通旅客出境 +1、出境又完成任務再 +1；通緝犯出境 +2、讓海關搜了白搜 +1、最後一擊押中 +2。壞陣營投票帶風向、海關也跟著判錯 +1。</li>
+<li><b>下判</b>：海關把「放行」或「抓人」印章拖到護照上才算數。</li>
 <li><b>危險物品</b>：有些旅客是因為工作才帶著看起來很危險的東西，他自己知道理由；通緝犯帶的違禁品沒有人給理由，被搜到只能自己掰。沒有對照表，海關要聽解釋、對職業，自己判斷合不合理。</li>
 <li><b>好旅客</b>：全程拿著回憶錄，但內容只有很模糊的大方向（「人到中年」「工作整天坐著」），但其中有 3 欄記得很清楚、寫的是精確答案（後台不知道是哪 3 欄）；後台和通緝犯拿的才是全部精確的條列版。<b>壞旅客＝通緝犯</b>：一定在通緝名單上，長相跟通緝令一模一樣、改不了，只有護照名字是假的；小抄輪到你時會被收走。</li>
 <li><b>回頭偷看</b>：海關可回頭看兩位後台的螢幕；後台會被通知、櫃台前的壞旅客可趁機偷看小抄 4 秒、海關畫面會糊 3 秒，回頭越多越糊。</li>
@@ -78,14 +131,15 @@ button.sw{width:30px;height:30px;padding:0;border-radius:50%;border:2px solid #3
 </ul>
 </details>
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
-<script src="mini/core.js?v=m3"></script>
-<script src="mini/pack3d.js?v=m3"></script>
-<script src="mini/metal.js?v=m3"></script>
-<script src="mini/deco.js?v=m3"></script>
-<script src="mini/xray.js?v=m3"></script>
-<script src="mini/screen.js?v=m3"></script>
-<script src="mini/words.js?v=m3"></script>
-<script src="mini/gesture.js?v=m3"></script>
+<script src="mini/core.js?v=m6"></script>
+<script src="mini/pack3d.js?v=m6"></script>
+<script src="mini/metal.js?v=m6"></script>
+<script src="mini/deco.js?v=m6"></script>
+<script src="mini/xray.js?v=m6"></script>
+<script src="mini/screen.js?v=m6"></script>
+<script src="mini/words.js?v=m6"></script>
+<script src="mini/gesture.js?v=m6"></script>
+<script src="mini/props.js?v=m6"></script>
 <script>
 'use strict';
 // ───────── 工具 ─────────
@@ -189,12 +243,17 @@ const M_STAY={親戚家:'住在認識的人那裡',朋友租的公寓:'住在認
 const M_COMP={自己一個人:'這趟只有我一個',和太太:'另一半陪著我',和先生:'另一半陪著我',和兩位同事:'跟工作上認識的人一起',和大學同學:'跟老朋友一起',和媽媽:'帶著家人'};
 const M_PET={沒養寵物:'家裡沒什麼要掛念的',養了一隻柴犬:'家裡有毛茸茸的要人照顧',養了兩隻貓:'家裡有毛茸茸的要人照顧',養了一缸金魚:'家裡有不會叫的小東西要餵',養了一隻烏龜:'家裡有不會叫的小東西要餵',養了一隻鸚鵡:'家裡有個很吵的小傢伙'};
 const fuzzyAge=n=>n<30?'我還年輕':n<45?'我不算年輕、也還不老':n<60?'我人到中年了':'我有點年紀了';
-const fuzzyDays=n=>n<=4?'不會待太久':n<=9?'會待上一陣子':'會待滿久的';
+// 線索三層開著的時候（線索解鎖不是「不分層」），回憶錄改用下面這幾句，讓第一層對得上回憶錄；不分層就照原本的
+const tierOn=()=>!G||!G.cfg||tierMode(G.cfg)!=='N';
+const M_TIERFIX={from:{曼谷:'從南邊一個很熱的地方來',新加坡:'從南邊一個很熱的地方來',吉隆坡:'從南邊一個很熱的地方來',香港:'從南邊一個很擠、樓很高的地方來'},
+  purpose:{看演唱會:'這趟是來玩的，為了一場期待很久的活動',參加馬拉松:'這趟是來玩的，為了一場期待很久的活動',留學報到:'這趟是要去一個新地方重新開始，從頭學起'},stay:{海邊民宿:'住得不算省，風景很好'}};
+const mMemo=(k,x)=>(tierOn()&&M_TIERFIX[k]&&M_TIERFIX[k][x])||M_BY[k][x];
+const fuzzyDays=n=>n<=(tierOn()?5:4)?'不會待太久':n<=9?'會待上一陣子':'會待滿久的';
 // clear＝這位旅客記得很清楚的欄位（寫精確答案），其他欄位只有模糊的印象
 const CLEAR_N=3,CLEAR_KEYS=['age','job','from','purpose','days','stay','companion','pet'];
 const memoir=(d,clear=[])=>{
   const c=k=>clear.includes(k);
-  return `我叫${d.name}，${c('age')?`今年 ${d.age} 歲`:fuzzyAge(d.age)}。${c('job')?`我的工作是${d.job}`:M_JOB[d.job]}。${c('from')?`我從${d.from}出發`:M_FROM[d.from]}，${c('companion')?`這趟是${d.companion}`:M_COMP[d.companion]}。${c('purpose')?`這趟是為了${d.purpose}`:M_PURPOSE[d.purpose]}，${c('days')?`會待 ${d.days} 天`:fuzzyDays(d.days)}，${c('stay')?`住在${d.stay}`:M_STAY[d.stay]}。${c('pet')?`家裡${d.pet}`:M_PET[d.pet]}。`;
+  return `我叫${d.name}，${c('age')?`今年 ${d.age} 歲`:fuzzyAge(d.age)}。${c('job')?`我的工作是${d.job}`:M_JOB[d.job]+(tierOn()?`（算是「${tierPath('job',d.job)[0]}」）`:'')}。${c('from')?`我從${d.from}出發`:mMemo('from',d.from)}，${c('companion')?`這趟是${d.companion}`:M_COMP[d.companion]}。${c('purpose')?`這趟是為了${d.purpose}`:mMemo('purpose',d.purpose)}，${c('days')?`會待 ${d.days} 天`:fuzzyDays(d.days)}，${c('stay')?`住在${d.stay}`:mMemo('stay',d.stay)}。${c('pet')?`家裡${d.pet}`:M_PET[d.pet]}。`;
 };
 // 開局先幫玩家擺一個合法的位置（大的先放、會往上疊；放不進去的小東西藏身上）；擺不出來回傳 false
 function autoPack(items){
@@ -232,8 +291,13 @@ const PHR_POOL={job:JOB,from:FROM,purpose:PURPOSE,stay:STAY,companion:COMP,pet:P
 function genPhrases(id){
   const o={};
   const nums=(truth,lo,hi,spread)=>{const set=new Set([truth]);while(set.size<4){const n=truth+rnd(spread*2+1)-spread;if(n>=lo&&n<=hi)set.add(n)}return shuffle([...set])};
-  o.age=nums(id.age,18,75,9);o.days=nums(id.days,1,16,5);
-  for(const k in PHR_POOL)o[k]=shuffle([id[k],...shuffle(PHR_POOL[k].filter(x=>x!==id[k])).slice(0,3)]);
+  if(!tierOn()){o.age=nums(id.age,18,75,9);o.days=nums(id.days,1,16,5);for(const k in PHR_POOL)o[k]=shuffle([id[k],...shuffle(PHR_POOL[k].filter(x=>x!==id[k])).slice(0,3)]);return o}   // 不分層：原本的做法
+  o.age=nums(id.age,22,68,9);o.days=nums(id.days,2,14,5);   // 不出線索樹的範圍，第一、二層才對得上
+  for(const k in PHR_POOL){   // 三個假答案：一個挑最像的（同一個第二層，沒有就同一個第一層），另外兩個隨機——騙人要藏在細的層級
+    const p=tierPath(k,id[k]),near=v=>{const q=tierPath(k,v);return q[1]===p[1]?2:q[0]===p[0]?1:0};
+    const rest=shuffle(PHR_POOL[k].filter(x=>x!==id[k])).sort((a,b)=>near(b)-near(a));
+    o[k]=shuffle([id[k],...rest.slice(0,1),...shuffle(rest.slice(1)).slice(0,2)]);
+  }
   return o;
 }
 const phraseText=(k,v)=>`${ID_LABEL[k]}：${v}${k==='age'?' 歲':k==='days'?' 天':''}`;
@@ -274,16 +338,80 @@ function taskLive(pid){
 const SCR_VARS=['0','A','B','C'],ASK_MAX=3,ASK_SEC={B:15,C:30};
 const SCR_NAME={'0':'0 原版',A:'A 特徵詞',B:'B 點題搶答',C:'C 特徵詞＋點題'};
 const SCR_RULE={
-  '0':'後台的詞庫裡直接有每一欄的四個選項（一真三假），隨時可以送上螢幕，送出後冷卻 3 秒。',
-  A:'後台的詞庫裡<b>沒有答案</b>，只能用特徵詞繞著講（例如「出發地不是北」）。旅客要拿回憶錄和「常見答案表」自己拼出答案。隨時可送，冷卻 3 秒。',
+  '0':'後台的詞庫每一欄分三層，第三層是四個精確選項（一真三假），隨時可以送上螢幕，送出後冷卻 3 秒。',
+  A:'後台的詞庫裡<b>沒有答案</b>：第一、二層是分類詞，第三層是特徵詞，只能繞著講（例如「出發地不是北」）。旅客要拿回憶錄和「線索對照表」自己拼出答案。隨時可送，冷卻 3 秒。',
   B:`海關每位旅客只能正式盤問 ${ASK_MAX} 欄。海關點題後倒數 ${ASK_SEC.B} 秒，兩位後台各只能送一句，時間到就送不出去；每題開始時兩個螢幕清空。`,
   C:`A 加 B：後台只有特徵詞可用，而且要等海關點題才能送（每位旅客 ${ASK_MAX} 題、每題 ${ASK_SEC.C} 秒、一題一句）。`};
+const SCR_RULE_N={...SCR_RULE,'0':'後台的詞庫裡直接有每一欄的四個選項（一真三假），隨時可以送上螢幕，送出後冷卻 3 秒。',
+  A:'後台的詞庫裡<b>沒有答案</b>，只能用特徵詞繞著講（例如「出發地不是北」）。旅客要拿回憶錄和「常見答案表」自己拼出答案。隨時可送，冷卻 3 秒。'};   // 線索解鎖選「不分層」時的說明（原本的版本）
 const SCR_G=typeof SCR_GROUPS!=='undefined'?SCR_GROUPS:[];   // mini/words.js
 const scrVar=c=>SCR_VARS.includes(c&&c.scr)?c.scr:'0';
 const scrFeat=c=>'AC'.includes(scrVar(c)),scrAsk=c=>'BC'.includes(scrVar(c));
 const M_BY={job:M_JOB,from:M_FROM,purpose:M_PURPOSE,stay:M_STAY,companion:M_COMP,pet:M_PET};
-const scrMemo=(k,x)=>k==='age'?fuzzyAge(x):k==='days'?fuzzyDays(x):M_BY[k][x];   // 這個答案在回憶錄裡的模糊說法
+const scrMemo=(k,x)=>k==='age'?fuzzyAge(x):k==='days'?fuzzyDays(x):mMemo(k,x);   // 這個答案在回憶錄裡的模糊說法
 const scrUnit=k=>k==='age'?'歲':k==='days'?'天':'';
+// ───────── 線索三層（每一欄一棵三層的樹；三種解鎖方式共用；細節見 mini/NOTES_screen.md） ─────────
+// 第一層≈好旅客回憶錄的模糊程度（人人都能驗證），第二層細分，第三層＝精確答案（0、B 版）或特徵詞（A、C 版，不收答案）。
+// 格式：[第一層, [[第二層, 葉子]]]；葉子是答案陣列，年齡和天數是 [最小, 最大] 的區間。詞不能跟通用詞、特徵詞、欄位名稱撞名。
+const TIER_TREE={
+  age:[['青年',[['二十前半',[22,25]],['二十後半',[26,29]]]],['壯年',[['三十前半',[30,34]],['三十後半',[35,39]],['四十出頭',[40,44]]]],
+    ['中年',[['四十後半',[45,49]],['五十前半',[50,54]],['五十後半',[55,59]]]],['熟齡',[['六十前半',[60,64]],['六十後半',[65,68]]]]],
+  job:[['室內工作',[['服務業',['廚師','麵包師傅','保險業務']],['醫療',['護理師','外科醫生','獸醫']],['坐辦公桌',['軟體工程師','會計']],['教書研究',['國小老師','昆蟲學家']]]],
+    ['戶外工作',[['農牧',['農夫','牛仔']],['山裡',['登山嚮導','礦工']],['海上',['船長','漁夫']],['治安',['警察','保全']]]],
+    ['到處跑',[['開車',['計程車司機','賽車手']],['外勤',['水電師傅','攝影師']]]],
+    ['表演手藝',[['舞台演出',['魔術師','馴獸師','體操選手']],['幕後',['煙火師傅','電影道具師']]]],
+    ['沒在上班',[['退休',['退休公務員']],['學生',['大學生']]]]],
+  from:[['台灣',[['北部',['台北']],['中南部',['台中','高雄']]]],['北方',[['日本',['東京','大阪']],['韓國',['首爾']]]],['南方',[['華人城市',['香港','新加坡']],['東南亞',['曼谷','吉隆坡']]]]],
+  purpose:[['探親訪友',[['看家人',['探望孫子']],['吃喜酒',['參加朋友婚禮']]]],['公務',[['開會',['出差開會']],['批貨',['採購貨物']]]],
+    ['休閒',[['到處逛',['自由行觀光']],['看表演',['看演唱會']],['運動',['參加馬拉松']]]],['求學',[['報到',['留學報到']]]]],
+  days:[['待不久',[['兩三天',[2,3]],['四五天',[4,5]]]],['待一陣子',[['六七天',[6,7]],['八九天',[8,9]]]],['待很久',[['十來天',[10,11]],['快兩週',[12,14]]]]],
+  stay:[['借住',[['親戚那',['親戚家']],['朋友那',['朋友租的公寓']]]],['省錢住',[['商旅',['車站前的商務旅館']],['背包客棧',['青年旅館']]]],['住好一點',[['看海',['海邊民宿']],['豪華',['五星級飯店']]]]],
+  companion:[['獨自出門',[['沒人陪',['自己一個人']]]],['跟家人',[['另一半',['和太太','和先生']],['長輩',['和媽媽']]]],['跟熟人',[['工作夥伴',['和兩位同事']],['老同學',['和大學同學']]]]],
+  pet:[['沒養',[['零隻',['沒養寵物']]]],['毛小孩',[['狗派',['養了一隻柴犬']],['貓派',['養了兩隻貓']]]],['安靜小東西',[['水裡游',['養了一缸金魚']],['慢吞吞',['養了一隻烏龜']]]],['很吵的',[['學舌鳥',['養了一隻鸚鵡']]]]]
+};
+const TIER_CN=['','一','二','三'],TIER_O=['','①','②','③'];
+const tierLeaf=(lf,v)=>typeof lf[0]==='number'?v>=lf[0]&&v<=lf[1]:lf.includes(v);
+const tierPath=(k,v)=>{for(const [a,subs] of TIER_TREE[k])for(const [b,lf] of subs)if(tierLeaf(lf,v))return [a,b];return ['','']};
+// 這位旅客每一欄的第一、二層選項：第一層整欄全列；第二層一真三假，假的先挑一個同一個第一層底下的（最難拆穿）
+function genTiers(id){
+  const o={};
+  for(const k of CLEAR_KEYS){
+    const [a,b]=tierPath(k,id[k]),all2=TIER_TREE[k].flatMap(x=>x[1].map(y=>[x[0],y[0]]));
+    const sib=shuffle(all2.filter(x=>x[0]===a&&x[1]!==b).map(x=>x[1])),far=all2.filter(x=>x[0]!==a).map(x=>x[1]);
+    o[k]={1:TIER_TREE[k].map(x=>x[0]),2:shuffle([b,...sib.slice(0,1),...shuffle([...sib.slice(1),...far]).slice(0,sib.length?2:3)])};
+  }
+  return o;
+}
+const tierOpts=t=>t.tiers||(t.tiers=genTiers(t.id));   // 第一次用到才產生，之後固定
+// 三種解鎖方式：A 隨時間（點題版改成題號）、B 後台自選但越細冷卻越久、C 旅客抬頭越多次看得越細
+const TIER_MODES=['A','B','C','N'],TIER_AT=[0,40,80],TIER_CD=[0,3,8,15],PEEK_TIER=[2,4];   // A：上櫃台第幾秒開第 1/2/3 層；B：句子最細到第 n 層就冷卻 TIER_CD[n] 秒；C：第幾次抬頭起看得到第二、三層
+const TIER_NAME={A:'A 隨時間解鎖',B:'B 後台自選・越細冷卻越久',C:'C 旅客抬頭解鎖',N:'不分層（原本的做法）'};
+const tierMode=c=>TIER_MODES.includes(c&&c.tier)?c.tier:'A';
+function tierRule(c){
+  const m=tierMode(c),q=scrAsk(c);
+  if(m==='N')return '不分層：螢幕照原本的做法，詞庫沒有層級、也沒有解鎖限制。';
+  const s=m==='A'?(q?'點題版改成以題號解鎖：第 1 題只能送第一層、第 2 題開到第二層、第 3 題開到第三層，兩位後台同步。':`每位旅客上櫃台後 0 秒開第一層、${TIER_AT[1]} 秒開第二層、${TIER_AT[2]} 秒開第三層，兩位後台同步。`)
+    :m==='B'?`後台隨時可以送任何一層，但句子裡最細的詞決定送完的冷卻：第一層 ${TIER_CD[1]} 秒、第二層 ${TIER_CD[2]} 秒、第三層 ${TIER_CD[3]} 秒（只用通用詞算第一層）。${q?'點題版照樣一題一句，冷卻跨題繼續算：送了第三層，下一題開始時可能還在冷卻。':''}`
+    :`後台隨時可送任何一層，但櫃台前的旅客這一位第 1 次抬頭只看得到第一層、第 ${PEEK_TIER[0]}–${PEEK_TIER[1]-1} 次看得到第二層、第 ${PEEK_TIER[1]} 次起看得到第三層，看不到的詞顯示成 🔒（海關回頭看到的是完整的）。抬頭越多次，越容易被盯著的海關發現。`;
+  return s+(scrFeat(c)?'這一局的第三層不是答案，而是解鎖特徵詞；第一、二層是分類詞，可以直接送。':'第三層是每欄四個精確選項（一真三假）。');
+}
+function tierSend(now){   // 主機用：後台現在送得出第幾層
+  if(tierMode(G.cfg)!=='A')return 3;
+  if(scrAsk(G.cfg))return Math.min(3,Math.max(1,G.qn));   // 點題版：第 n 題開到第 n 層
+  const e=now-G.turnAt;return e>=TIER_AT[2]*1000?3:e>=TIER_AT[1]*1000?2:1;
+}
+const peekTier=n=>n>=PEEK_TIER[1]?3:n>=PEEK_TIER[0]?2:1;
+const tierSee=()=>tierMode(G.cfg)==='C'?peekTier(G.peek.count):3;   // 櫃台前的旅客看得到第幾層
+function scrTierMap(ct){   // 主機用：這位旅客的螢幕可以用哪些詞、各算第幾層（0＝通用詞、欄位名稱）
+  const m=new Map(),put=(w,n)=>{w=String(w);if(!m.has(w))m.set(w,n)};
+  Object.keys(ct.phr).forEach(k=>put(ID_LABEL[k],0));
+  if(scrFeat(G.cfg))SCR_G.forEach(g=>g.words.forEach(w=>put(w,tierOn()?g.tier||0:0)));else WORDS.forEach(w=>put(w,0));   // 不分層：沒有第一、二層的詞，特徵詞也不分層
+  const to=tierOn()?tierOpts(ct):{};for(const k in to){to[k][1].forEach(w=>put(w,1));to[k][2].forEach(w=>put(w,2))}
+  if(!scrFeat(G.cfg))Object.values(ct.phr).flat().forEach(w=>put(w,3));   // 特徵詞版不收任何答案
+  return m;
+}
+// 旅客看到的螢幕：比他看得到的層級細的詞換成 🔒（只有 C 旅客解鎖會發生）
+function scrSeen(b,lv){const s=G.screens[b]||'',x=(G.scrToks||{})[b];return !s||!x||x.text!==s?s:x.toks.map(([w,n])=>n>lv?'🔒':w).join('')}
 
 function startGame(){
   const ids=shuffle(G.players.map(p=>p.pid)),n=ids.length;
@@ -307,22 +435,137 @@ function startGame(){
       G.wanted.push({name:nameVariant(t.passName,used),looks:looksVariant(t.looks),crime:pick(CRIME)});
     }
     Object.assign(t,{id:genId(t.passName,rnd(100)<40),task:pick(bad?TASK_BAD:TASK_GOOD),taskDone:false,verdict:null,auto:false,opened:false,scanned:{},taken:{},swab:{},xeye:{},wave:null,dog:null,heard:{},coughUntil:0,coughCd:0});
-    t.items=genItems(bad,t.id.job);t.phr=genPhrases(t.id);t.deco={bg:0,acc:'沒有',strokes:[]};t.clear=shuffle(CLEAR_KEYS).slice(0,CLEAR_N);
+    t.items=genItems(bad,t.id.job);t.items.forEach(i=>i.dec=false);Object.assign(t,{bribe:null,bribed:false,searched:false,found:false,strike:null});t.phr=genPhrases(t.id);t.deco={bg:0,acc:'沒有',strokes:[]};t.clear=shuffle(CLEAR_KEYS).slice(0,CLEAR_N);
     if(!bad){t.taskKind=pickSysTask(t.items);t.task=SYS_TASK[t.taskKind]}   // 好旅客：系統判定的任務（蓋掉上面抽的誠實制任務）
     G.trav[p]=t;
   }
   while(G.wanted.length<12)G.wanted.push({name:genName(used),looks:genLooks(),crime:pick(CRIME)});
   G.wanted=shuffle(G.wanted);
   Object.assign(G,{phase:'prep',customs,queue:shuffle(travs),cur:-1,ap:G.cfg.ap,deadline:Date.now()+G.cfg.prep*1000,
-    backs,screens:{},scrCd:{},loadout:{picked:['wand'],secret:null},log:[],clog:[],chat:[],gestCd:{},pose:null,poseSeq:0,peek:{on:false,start:0,cd:0,count:0,noticeUntil:0},watch:false,looks:0,lookUntil:0,blurUntil:0,peekUntil:0,result:null});
+    backs,screens:{},scrCd:{},loadout:{picked:['wand'],secret:null},log:[],clog:[],chat:[],gestCd:{},pose:null,poseSeq:0,peek:{on:false,start:0,cd:0,count:0,noticeUntil:0},watch:false,looks:0,lookUntil:0,blurUntil:0,peekUntil:0,result:null,press:0,pressAt:0,turnAt:0});
   log('🛫 遊戲開始！準備時間：旅客堆行李、壞旅客背小抄、海關背通緝名單。');
   Object.assign(G,{ask:null,qn:0,asked:{},asent:{}});   // 點題（B、C 版）
+  Object.assign(G,{votes:{},voteLog:[]});   // 公開投票
+  Object.assign(G,{pts:{},vn:{},plant:null,belt:[],plantOpts:genPlantOpts()});   // 表現分、投票次數、栽贓（一局一次）、輸送帶紀錄
 }
 const pname=pid=>(G.players.find(p=>p.pid===pid)||{}).name||'?';
 const log=t=>G.log.push(t);
 const note=(pid,text)=>{G.notes[pid]={text,until:Date.now()+3500}};
 const curPid=()=>G.phase==='inspect'?G.queue[G.cur]:null;
 
+// 申報制：搜查查到沒申報的東西拿回點數；查了卻沒查到，下判時要賠
+const DECL_REFUND=2,DECL_FINE=2,STRIKE_SEC=25;
+// ───────── 表現分（不影響勝負，只用來結算排名、頒稱號）＋栽贓＋超重 ─────────
+// 每一種加分事件一個數值，要調整只改這裡；文字說明在 score() 呼叫的地方
+const PTS={judge:1,found:1,bribe:1,vote:1,steer:1,flagHit:1,flagWaste:1,goodOut:1,goodTask:1,badOut:2,badHelp:1,fine:1,plant:3,strike:2};
+const PLANT_OPTS=5;    // 壞後台栽贓時可以挑的違禁品數（開局抽，至少一件 1 格的小東西）
+const OVER_CELLS=14;   // 行李箱用掉的空間到這個數字就算超重（整個箱子 GRID 3×3×3＝27 格）
+const score=(pid,k,why)=>{if(pid&&G.pts)(G.pts[pid]=G.pts[pid]||[]).push({k,p:PTS[k],why})};
+// 行李箱用掉的空間：每一格從箱底算到最上面那件東西的高度（壓在底下的空隙也算，亂疊會浪費空間）
+const bagLoad=items=>Object.values(colHeights(items.filter(i=>i.loc==='bag'))).reduce((a,b)=>a+b,0);
+// ───────── 這局套用的機制：房主在大廳勾選，存在 G.cfg[k]（沒設定＝開）。之後的機制往 MECHS 裡加就好 ─────────
+const MECHS=[
+  {k:'declare',name:'📋 申報制',desc:'旅客準備時勾申報單；海關搜到沒申報的東西拿回 2 點，搜了卻沒搜到要賠 2 點'},
+  {k:'bribe',name:'🎁 賄賂',desc:'櫃台前的旅客可以遞一件行李當伴手禮；海關收下就必須放行，收到通緝犯的海關直接輸'},
+  {k:'vote',name:'🗳️ 公開投票',desc:'海關下判前，後台和其他旅客各投放行／扣留，誰投什麼全部公開'},
+  {k:'strike',name:'💥 最後一擊',desc:'通緝犯被扣留時可以押注哪個螢幕是好後台的：猜中好後台不算贏，猜錯通緝犯和壞後台都輸'},
+  {k:'press',name:'😤 排隊抱怨值',desc:'後面有人在等就一直漲：到 50 海關 −1 點，到 100 長官介入、這位只剩 20 秒'},
+  {k:'plant',name:'🧳 栽贓',desc:'壞後台一局一次，通關時把一件違禁品塞進還沒輪到的普通旅客行李箱；兩位後台會看到輸送帶紀錄'},
+  {k:'overweight',name:'⚖️ 超重',desc:`行李箱用掉 ${OVER_CELLS} 格以上算超重：海關可以免費丟掉一件，後台的 X 光疊成一團看不清`}
+];
+const MECH_WORDS={declare:['申報'],bribe:['伴手禮','賄賂','收賄'],vote:['投票','改票','投放行'],strike:['最後一擊'],press:['抱怨值'],plant:['栽贓','輸送帶紀錄'],overweight:['超重']};
+// 把提示清單裡跟「這局沒套用的機制」有關的項目拿掉；表現分那一行只拿掉相關的分項
+function mechClean(list,cfg){
+  const off=MECHS.filter(d=>!mech(d.k,cfg)).flatMap(d=>MECH_WORDS[d.k]||[]),hit=x=>off.some(w=>String(x).includes(w));
+  if(!off.length)return list;
+  return list.map(x=>String(x).startsWith('表現分')?x.replace(/(：)(.*)$/,(m0,a,b)=>a+b.split('、').filter(y=>!hit(y)).join('、')):x).filter(x=>!hit(x));
+}
+const mechText=(t,cfg)=>mechClean(String(t).split(/(?<=。)/),cfg).join('');
+const mech=(k,cfg)=>{const c=cfg||(V&&V.cfg)||(G&&G.cfg)||{};return c[k]!==false};   // 這局有沒有套用機制 k（預設開）
+const isOver=t=>mech('overweight',G.cfg)&&bagLoad(t.items)>=OVER_CELLS;
+// 超重箱子給後台的 X 光：只有每一格疊多高（一團），沒有件數、形狀、材質
+const blobOf=items=>{const h=colHeights(items.filter(i=>i.loc==='bag'));return Array.from({length:GRID.w*GRID.h},(_,i)=>h[(i%GRID.w)+','+Math.floor(i/GRID.w)]||0)};
+// 開局抽栽贓用的違禁品（CONTRA 的索引），保證至少一件 1 格的，小箱子也有機會塞得進去
+function genPlantOpts(){
+  const ks=shuffle(CONTRA.map((c,k)=>k)).slice(0,PLANT_OPTS),sz=k=>cells(CONTRA[k][3],0).length;
+  if(!ks.some(k=>sz(k)===1))ks[0]=pick(CONTRA.map((c,k)=>k).filter(k=>sz(k)===1));
+  return ks.sort((a,b)=>sz(a)-sz(b));
+}
+// 栽贓：照旅客自己放東西的規則（從上面放下去），找最低的空位放，同樣低的隨機挑；放不下回傳 null
+function plantInto(items,c){
+  const it={n:c[0],x:c[1],m:!!c[2],c:true,lg:false,why:null,sh:c[3],...(ATTR[c[0]]||{}),pl:true,dec:false,loc:'none',gx:0,gy:0,gz:0,r:0,slot:null,seen:false};
+  let best=[];
+  for(let r=0;r<4;r++)for(let y=0;y<GRID.h;y++)for(let x=0;x<GRID.w;x++){
+    const z=dropZ(items,it,x,y,r);if(z<0)continue;
+    if(!best.length||z<best[0].gz)best=[{gx:x,gy:y,gz:z,r}];else if(z===best[0].gz)best.push({gx:x,gy:y,gz:z,r});
+  }
+  if(!best.length)return null;
+  Object.assign(it,{loc:'bag'},pick(best));items.push(it);return it;
+}
+// 每判完一位旅客結算一次表現分：海關判決、公開投票、旅客本人、栽贓
+function scoreVerdict(p,t,v,auto){
+  const bad=G.roles[p].bad,right=v===(bad?'arrest':'pass'),nm=t.passName;
+  if(!auto&&!t.bribed&&right)score(G.customs,'judge',`判對 ${nm}（${bad?'抓到通緝犯':'放行普通旅客'}）`);
+  for(const [q,x] of Object.entries(G.votes)){
+    const qb=G.roles[q].bad,ok=x===(bad?'arrest':'pass');G.vn[q]=(G.vn[q]||0)+1;
+    if(ok&&!qb)score(q,'vote',`投票投對：${nm} 該${bad?'扣留':'放行'}`);
+    if(!ok&&qb&&!right)score(q,'steer',`帶風向成功：投${x==='pass'?'放行':'扣留'} ${nm}，海關也跟著判錯`);
+  }
+  if(v==='pass'){
+    if(bad){score(p,'badOut','通緝犯成功出境');G.backs.filter(b=>G.roles[b].bad).forEach(b=>score(b,'badHelp',`掩護的通緝犯 ${nm} 出境了`))}
+    else{score(p,'goodOut','順利出境');if(t.taskDone)score(p,'goodTask','出境而且完成系統任務')}
+  }
+  const pl=G.plant;
+  if(pl&&pl.to===p){
+    Object.assign(pl,{verdict:v,auto,dumped:pl.item.loc!=='bag'});
+    pl.hit=v==='arrest'&&!auto&&!pl.dumped;
+    if(pl.hit)score(pl.by,'plant',`栽贓成功：${nm} 被海關扣留了`);
+  }
+}
+// 稱號：條件寫死，由系統判定。ks＝這個人每種加分事件各拿了幾次
+const TITLES=[
+  ['👑 全場 MVP','表現分最高（同分並列，至少 1 分）',(pid,ks,tot,top)=>tot>0&&tot===top],
+  ['🎭 最佳栽贓','壞後台栽贓的旅客被海關扣留',(pid,ks)=>ks.plant>0,'plant'],
+  ['🦅 火眼金睛','海關親手判對每一位旅客（超時亂判的不算）',(pid,ks)=>G.roles[pid].role==='customs'&&(ks.judge||0)===G.queue.length],
+  ['🕵️ 抓漏專家','查到 2 位以上旅客有東西沒申報',(pid,ks)=>ks.found>=2,'declare'],
+  ['💰 收賄王','收下過伴手禮',(pid,ks)=>ks.bribe>0,'bribe'],
+  ['🔮 神預言','投了 2 票以上，而且每一票都投對',(pid,ks)=>ks.vote>=2&&ks.vote===G.vn[pid],'vote'],
+  ['🌀 帶風向大師','壞陣營投票帶風向，海關也跟著判錯',(pid,ks)=>ks.steer>0,'vote'],
+  ['🎯 神射手','後台指認的東西被海關開到違禁品',(pid,ks)=>ks.flagHit>0],
+  ['🪤 陷阱大師','壞後台指認普通物品，騙海關白開',(pid,ks)=>ks.flagWaste>0],
+  ['🚪 全身而退','普通旅客出境又完成任務',(pid,ks)=>ks.goodTask>0],
+  ['🕶️ 逍遙法外','通緝犯成功出境',(pid,ks)=>ks.badOut>0],
+  ['💥 一擊必殺','最後一擊押中好後台',(pid,ks)=>ks.strike>0,'strike'],
+  ['🧳 背黑鍋','行李被栽贓（純紀念，不加分）',pid=>!!(G.plant&&G.plant.to===pid),'plant']   // 第 4 欄＝屬於哪個可開關的機制，關掉就不頒
+];
+// 結算：最後一擊加分、栽贓公開、表現分排行與稱號
+function endScore(shots){
+  shots.filter(x=>x.hit).forEach(x=>score(x.q,'strike','最後一擊押中了好後台的螢幕'));
+  const pl=G.plant;
+  G.result.canPlant=mech('plant',G.cfg)&&G.backs.some(b=>G.roles[b].bad);
+  const titles=TITLES.filter(d=>!d[3]||mech(d[3],G.cfg));
+  G.result.plant=pl?{by:pname(pl.by),to:G.trav[pl.to].passName,player:pname(pl.to),n:pl.n,turn:pl.turn,verdict:pl.verdict||null,auto:!!pl.auto,hit:!!pl.hit,dumped:pl.item.loc==='dump',found:pl.item.seenBy||''}:null;
+  const tot=pid=>(G.pts[pid]||[]).reduce((a,x)=>a+x.p,0),top=Math.max(0,...G.players.map(p=>tot(p.pid)));
+  const rows=G.players.map(p=>{
+    const list=G.pts[p.pid]||[],ks={},r=G.roles[p.pid],t=tot(p.pid);list.forEach(x=>ks[x.k]=(ks[x.k]||0)+1);
+    return {name:p.name,role:r.role,bad:r.bad,total:t,list:list.map(x=>({p:x.p,why:x.why})),titles:titles.filter(d=>d[2](p.pid,ks,t,top)).map(d=>({n:d[0],why:d[1]}))};
+  }).sort((a,b)=>b.total-a.total);
+  rows.forEach((x,i)=>x.rank=i&&x.total===rows[i-1].total?rows[i-1].rank:i+1);
+  G.result.score=rows;G.result.titles=titles.map(d=>({n:d[0],why:d[1]}));
+}
+function reveal(t,its){
+  if(!mech('declare',G.cfg))return;   // 這局沒套用申報制
+  t.searched=true;
+  its.filter(i=>i&&i.pl).forEach(i=>i.seenBy='海關搜到了它');   // 被栽贓的那件被搜到（結算公開用）
+  const u=its.filter(i=>i&&!i.dec);
+  if(u.length&&!t.found){
+    t.found=true;G.ap+=DECL_REFUND;score(G.customs,'found',`查到 ${t.passName} 有東西沒申報`);
+    log(`📋 海關查到沒申報的東西！拿回 ${DECL_REFUND} 點`);
+    G.clog.push(`📋 沒申報：${u.map(i=>i.n).join('、')}（拿回 ${DECL_REFUND} 點）${u.some(i=>i.c||i.lg)?'。危險物品沒申報：叫他解釋為什麼要藏':''}`);
+  }
+}
+// 最後一擊：被扣留的通緝犯猜哪個螢幕是好後台的
+const strikePending=()=>G.queue.some(q=>G.trav[q].strike&&G.trav[q].strike.st==='open');
 function startInspect(){
   if(!G.loadout.picked.length)G.loadout={picked:['wand'],secret:null};   // 海關什麼都沒選就只帶探測棒
   G.phase='inspect';G.cur=-1;log(`🛂 準備結束，開始通關。海關這回合帶了 ${G.loadout.picked.length} 招。`);nextTurn()
@@ -332,7 +575,11 @@ function nextTurn(){
   G.flags={};   // 指認抽查：後台 pid → {item: 第幾件（X 光清單的順序）, opened}，換人就清掉
   G.pose=null;G.peek={on:false,start:0,cd:0,count:0,noticeUntil:0};G.watch=false;
   G.ask=null;G.qn=0;G.asked={};G.asent={};   // 點題次數每位旅客重算
-  if(G.cur>=G.queue.length)return endGame();
+  G.turnAt=Date.now();G.votes={};
+  if(G.cur>=G.queue.length){   // 還有通緝犯沒決定最後一擊：等他一下
+    if(strikePending()){G.phase='strike';G.deadline=Date.now()+STRIKE_SEC*1000;log('💥 全部旅客處理完了，等被扣留的通緝犯決定最後一擊…');return}
+    return endGame();
+  }
   G.deadline=Date.now()+G.cfg.turn*1000;
   const p=G.queue[G.cur];
   log(`➡️ 第 ${G.cur+1} 位旅客上前：${G.trav[p].passName}（玩家 ${pname(p)}）`);
@@ -342,6 +589,12 @@ function verdict(v,auto){
   const p=curPid(),t=G.trav[p];t.verdict=v;t.auto=auto;
   log(`${auto?'⏰ 超時！系統隨機判定':'🧑‍✈️ 海關決定'}：${v==='pass'?'✅ 放行':'🚨 抓人'} ${t.passName}`);
   judgeTask(p,v,auto);
+  if(!auto&&!t.bribed&&t.searched&&!t.found){const d=Math.min(G.ap,DECL_FINE);G.ap-=d;log(`📋 查了半天，沒查到 ${t.passName} 有任何沒申報的東西：查錯要賠，海關 −${d} 點`);if(G.roles[p].bad)score(p,'fine','讓海關搜了白搜、賠了點數')}
+  G.voteLog.push({pass:t.passName,player:pname(p),bad:G.roles[p].bad,verdict:v,auto,bribed:t.bribed,
+    votes:Object.entries(G.votes).map(([q,x])=>({name:pname(q),kind:G.roles[q].role==='backend'?'後台':'旅客',v:x}))});
+  scoreVerdict(p,t,v,auto);
+  if(v==='arrest'&&G.roles[p].bad&&G.backs.length===2&&mech('strike',G.cfg))t.strike={st:'open'};
+  if(!auto&&Date.now()-G.turnAt<PRESS_QUICK*1000&&G.press>0){G.press=Math.max(0,G.press-PRESS_RELIEF);log(`😌 海關很快就判完了，隊伍消了點氣（抱怨值 −${PRESS_RELIEF}）`)}
   nextTurn();
 }
 function endGame(){
@@ -350,6 +603,10 @@ function endGame(){
   const allRight=G.queue.every(p=>G.trav[p].verdict===(G.roles[p].bad?'arrest':'pass'));
   const badTask=bads.some(p=>G.trav[p].taskDone);
   const cw=allRight&&!badTask;
+  for(const q of G.queue){const s=G.trav[q].strike;if(s&&s.st==='open')G.trav[q].strike={st:'skip'}}   // 時間到還沒選＝放棄
+  const goodIdx=G.backs.findIndex(b=>!G.roles[b].bad);
+  const shots=bads.map(q=>({q,s:G.trav[q].strike})).filter(x=>x.s&&x.s.st==='done').map(x=>({q:x.q,hit:x.s.pick===goodIdx}));
+  const struck=shots.some(x=>x.hit),missed=shots.filter(x=>!x.hit).map(x=>x.q),badBribe=bads.some(q=>G.trav[q].bribed);
   const cwWhy=cw?'全部判對，壞旅客也沒完成任務':!allRight?'有旅客判錯':'壞旅客完成了任務';
   const rows=G.players.map(pl=>{
     const r=G.roles[pl.pid],t=G.trav[pl.pid];let win,why;
@@ -360,10 +617,16 @@ function endGame(){
       else{win=!allRight;why=win?'這局沒有壞旅客，但成功讓海關抓錯人':'這局沒有壞旅客，海關也沒抓錯人'}
     }else if(!r.bad){win=t.verdict==='pass'&&t.taskDone;why=`${t.verdict==='pass'?'出境':'被抓'}／任務${t.taskDone?'完成':'未完成'}（兩者都要）`}
     else{win=t.verdict==='pass'||t.taskDone;why=`${t.verdict==='pass'?'出境':'被抓'}／任務${t.taskDone?'完成':'未完成'}（擇一即可）`}
+    if(r.role==='customs'&&badBribe){win=false;why='收了通緝犯的賄賂'}
+    if(r.role==='backend'&&!r.bad&&struck){win=false;why='被通緝犯的最後一擊猜中是你'}
+    if(r.role==='backend'&&r.bad&&missed.length){win=false;why+='；通緝犯的最後一擊猜錯了'}
+    if(r.role==='traveler'&&r.bad&&missed.includes(pl.pid)){win=false;why='最後一擊猜錯，押上的勝利沒了'}
     return {name:pl.name,role:r.role,bad:r.bad,win,why};
   });
-  G.result={rows,wanted:G.wanted,travs:G.queue.map(p=>{const t=G.trav[p];return {player:pname(p),bad:G.roles[p].bad,passName:t.passName,real:t.real,looks:t.looks,id:t.id,deco:t.deco,items:t.items,task:t.task,taskDone:t.taskDone,verdict:t.verdict,auto:t.auto}})};
+  G.result={rows,wanted:G.wanted,travs:G.queue.map(p=>{const t=G.trav[p];return {player:pname(p),bad:G.roles[p].bad,passName:t.passName,real:t.real,looks:t.looks,id:t.id,deco:t.deco,items:t.items,task:t.task,taskDone:t.taskDone,verdict:t.verdict,auto:t.auto,bribe:t.bribe,strike:t.strike,strikeHit:t.strike&&t.strike.st==='done'?t.strike.pick===goodIdx:null}})};
+  G.result.votes=G.voteLog;G.result.goodSide=goodIdx;
   G.result.travs.forEach((x,i)=>{x.taskDetail=G.trav[G.queue[i]].taskDetail||''});
+  endScore(shots);
   log('🏁 全部旅客處理完畢，結算！');
 }
 
@@ -373,6 +636,8 @@ function act(pid,m){
   switch(m.a){
   case 'cfg':if(host&&G.phase==='lobby'){
       if(m.k==='scr'){if(SCR_VARS.includes(String(m.v)))G.cfg.scr=String(m.v);break}
+      if(m.k==='mech'){const d=MECHS.find(x=>x.k===m.mk);if(d)G.cfg[d.k]=!!m.on;break}   // 這局套用的機制
+      if(m.k==='tier'){if(TIER_MODES.includes(String(m.v)))G.cfg.tier=String(m.v);break}
       if(m.k==='customs')G.cfg.customs=String(m.v);
       else{const lim={prep:[10,600],turn:[30,900],ap:[0,30]}[m.k],n=Math.round(+m.v);if(lim&&n>=lim[0]&&n<=lim[1])G.cfg[m.k]=n}
     }break;
@@ -394,6 +659,26 @@ function act(pid,m){
         Object.assign(it,{loc:'body',slot:sl.id});
       }
       settle(t.items);   // 底下的東西被拿走，上面的往下掉
+    }break;
+  case 'declare':if(G.phase==='prep'&&r&&r.role==='traveler'&&mech('declare',G.cfg)){   // 勾申報單（危險物品也可以申報）
+      const it=G.trav[pid].items[m.i];if(it)it.dec=!!m.on;
+    }break;
+  case 'bribe':if(r&&r.role==='traveler'&&pid===cp&&!ct.bribe&&mech('bribe',G.cfg)){   // 遞伴手禮：每位旅客一次
+      const it=ct.items[m.i];if(!it||it.pl||it.loc==='gift'||it.loc==='dump'||(it.loc==='body'&&ct.taken[it.slot]!=null))break;
+      ct.bribe={i:m.i,n:it.n,st:'offer'};G.clog.push(`🎁 旅客偷偷遞上伴手禮：${it.n}`);
+    }break;
+  case 'bribeAns':if(r&&r.role==='customs'&&ct&&ct.bribe&&ct.bribe.st==='offer'){
+      if(m.ok){
+        const it=ct.items[ct.bribe.i];it.loc='gift';it.slot=null;settle(ct.items);
+        ct.bribe.st='took';ct.bribed=true;score(pid,'bribe',`收下 ${ct.passName} 的伴手禮「${ct.bribe.n}」`);G.clog.push(`🎁 收下了「${ct.bribe.n}」（表現分 +${PTS.bribe}），只能放行`);
+        verdict('pass',false);
+      }else{ct.bribe.st='no';G.clog.push('🎁 拒收了伴手禮')}
+    }break;
+  case 'vote':if(G.phase==='inspect'&&mech('vote',G.cfg)&&ct&&r&&(r.role==='backend'||r.role==='traveler')&&pid!==cp&&(m.v==='pass'||m.v==='arrest'))G.votes[pid]=m.v;break;
+  case 'strike':if(r&&r.role==='traveler'&&r.bad&&(G.phase==='inspect'||G.phase==='strike')){
+      const t=G.trav[pid];if(!t.strike||t.strike.st!=='open')break;
+      if(m.side===0||m.side===1){t.strike={st:'done',pick:m.side};log(`💥 通緝犯 ${t.passName} 押下了最後一擊（結算時揭曉）`)}
+      else t.strike={st:'skip'};
     }break;
   case 'deco':if(r&&r.role==='traveler'&&G.phase!=='end'){   // 純娛樂的打扮，不影響任何判定
       const d=G.trav[pid].deco;
@@ -438,7 +723,7 @@ function act(pid,m){
       if(G.ap<1){note(pid,'行動點數不夠');break}G.ap-=1;
       const it=ct.items.find(i=>i.loc==='body'&&i.slot===sl.id&&!i.seen);
       ct.xeye[sl.id]=it?it.n:'';
-      log(`👁️ 海關用透視眼看了「${sl.label}」（−1）`);G.clog.push(`👁️ 透視「${sl.label}」：${it?it.n:'空的'}`);
+      log(`👁️ 海關用透視眼看了「${sl.label}」（−1）`);G.clog.push(`👁️ 透視「${sl.label}」：${it?it.n:'空的'}`);reveal(ct,[it]);
     }break;
   case 'call':if(r&&r.role==='customs'&&ct&&G.loadout.picked.includes('call')){
       const kd=KINDS.find(q=>q.k===m.kind);if(!kd)break;
@@ -454,14 +739,17 @@ function act(pid,m){
       const it=ct.items.find(i=>i.loc==='body'&&i.slot===sl.id);
       ct.taken[sl.id]=it?it.n:'';if(it)it.seen=true;
       G.clog.push(`✋ 從「${sl.label}」取出：${it?it.n:'空的，什麼都沒有'}`);
-      log(`✋ 海關要旅客掏出「${sl.label}」的東西（−2）`);
+      log(`✋ 海關要旅客掏出「${sl.label}」的東西（−2）`);reveal(ct,[it]);
     }break;
   case 'open':if(r&&r.role==='customs'&&ct){
-      if(!ct.opened){if(G.ap<2){note(pid,'行動點數不夠');break}G.ap-=2;ct.opened=true;log('🧳 海關打開了行李箱（−2）')}
-      const bag=ct.items.filter(i=>i.loc==='bag').map(i=>i.n);
+      const first=!ct.opened;
+      if(first){if(G.ap<2){note(pid,'行動點數不夠');break}G.ap-=2;ct.opened=true;log('🧳 海關打開了行李箱（−2）')}
+      const bag=ct.items.filter(i=>i.loc==='bag').map(i=>i.n+(i.dec||!mech('declare',G.cfg)?'':'（沒申報）'));
       G.clog.push('🧳 行李箱內：'+(bag.length?bag.join('、'):'空的'));
+      if(first)reveal(ct,ct.items.filter(i=>i.loc==='bag'));
     }break;
   case 'flag':if(r&&r.role==='backend'&&ct){   // 指認抽查：每位後台對櫃台前這位旅客的行李箱最多指一件，再送一次就換掉，item 給 null 就收回
+      if(isOver(ct)){note(pid,'這個箱子超重，X 光疊成一團，沒辦法指認');break}
       const f=G.flags[pid];
       if(f&&f.opened){note(pid,'海關已經開了你指的那一件，不能再改');break}
       if(m.item==null){delete G.flags[pid];break}
@@ -474,14 +762,15 @@ function act(pid,m){
       const who=flagSide(m.side,G.backs.length)+'後台',waste=!it.c&&!it.lg,extra=waste&&G.ap>0;
       if(extra)G.ap-=1;
       G.clog.push(`👉 開了${who}指的那一件：${it.n}${waste?`——普通物品，白開了${extra?'，再扣 1 點':''}`:''}`);
-      log(`👉 海關開了${who}指的那一件（−1）`);
+      log(`👉 海關開了${who}指的那一件（−1）`);reveal(ct,[it]);
+      const fb=G.backs[m.side];if(it.c)score(fb,'flagHit',`指認的「${it.x}」被海關開到違禁品（${it.n}）`);else if(waste&&G.roles[fb].bad)score(fb,'flagWaste',`指認普通物品（${it.n}），騙海關白開`);
     }break;
   case 'look':if(r&&r.role==='customs'&&ct&&now>=G.lookUntil){
       G.looks++;G.lookUntil=now+LOOK_MS;G.blurUntil=now+LOOK_MS+BLUR_MS;
       if(G.roles[cp].bad)G.peekUntil=now+PEEK_MS;
       log(`👀 海關回頭偷看螢幕（第 ${G.looks} 次）`);
     }break;
-  case 'verdict':if(r&&r.role==='customs'&&ct&&(m.v==='pass'||m.v==='arrest'))verdict(m.v,false);break;
+  case 'verdict':if(r&&r.role==='customs'&&ct&&(m.v==='pass'||m.v==='arrest')&&(m.k==null||m.k==='t'+G.cur))verdict(m.v,false);break;
   case 'chat':if(r&&r.role==='backend'&&G.phase!=='end'){
       const text=String(m.text||'').trim().slice(0,200);if(text)G.chat.push({by:pname(pid),text});
     }break;
@@ -495,19 +784,23 @@ function act(pid,m){
     }break;
   case 'screen':if(r&&r.role==='backend'&&ct){
       if(m.clear){G.screens[pid]='';break}
+      const tb=tierMode(G.cfg)==='B';
       if(scrAsk(G.cfg)){   // 點題版：只在倒數中收，而且每題每人一句（不用冷卻）
         if(!G.ask||now>=G.ask.until){note(pid,'現在不是搶答時間，等海關點題');break}
         if(G.asent[pid]){note(pid,'這一題你已經送過了');break}
-      }else
-      if((G.scrCd[pid]||0)>now){note(pid,'螢幕切換太快，等一下');break}
-      // 只能用定型的詞組合：通用詞、欄位名稱、這位旅客各欄位的選項
-      const ok=scrFeat(G.cfg)?new Set([...SCR_G.flatMap(g=>g.words),...Object.keys(ct.phr).map(k=>ID_LABEL[k])]):   // 特徵詞版：不收任何答案
-        new Set([...WORDS,...Object.keys(ct.phr).map(k=>ID_LABEL[k]),...Object.values(ct.phr).flat().map(String)]);
-      const toks=(Array.isArray(m.t)?m.t:[]).map(String);
-      if(!toks.length||!toks.every(x=>ok.has(x)))break;
+      }
+      if((!scrAsk(G.cfg)||tb)&&(G.scrCd[pid]||0)>now){note(pid,tb?`還在冷卻（剛送了第${TIER_CN[(G.scrCdN||{})[pid]||1]}層）`:'螢幕切換太快，等一下');break}
+      // 只能用定型的詞組合：通用詞、欄位名稱、這位旅客各欄位三層的選項（特徵詞版第三層是特徵詞，不收任何答案）
+      const tm=scrTierMap(ct),toks=(Array.isArray(m.t)?m.t:[]).map(String);
+      if(!toks.length||!toks.every(x=>tm.has(x)))break;
+      const top=Math.max(...toks.map(x=>tm.get(x)));
+      if(top>tierSend(now)){note(pid,`第${TIER_CN[top]}層還沒解鎖`);break}
       const text=toks.join('');
       if([...text].length>SCR_MAX){note(pid,`螢幕最多 ${SCR_MAX} 個字`);break}
-      G.screens[pid]=text;if(scrAsk(G.cfg))G.asent[pid]=true;else G.scrCd[pid]=now+SCR_CD;
+      G.screens[pid]=text;(G.scrToks||(G.scrToks={}))[pid]={text,toks:toks.map(x=>[x,tm.get(x)])};   // 記下每個詞的層級，C 版要遮給旅客看
+      if(scrAsk(G.cfg))G.asent[pid]=true;
+      if(tb){const n=Math.max(1,top);G.scrCd[pid]=now+TIER_CD[n]*1000;(G.scrCdN||(G.scrCdN={}))[pid]=n}   // B：越細冷卻越久（點題版也照算，跨題繼續）
+      else if(!scrAsk(G.cfg))G.scrCd[pid]=now+SCR_CD;
     }break;
   case 'gesture':if(r&&r.role==='traveler'&&pid===cp&&GESTURE.includes(m.g)&&(G.gestCd[pid]||0)<=now){
       G.gestCd[pid]=now+2000;log(`🙋 ${ct.passName} ${m.g}`);G.pose={g:m.g,seq:++G.poseSeq,until:now+2000};
@@ -519,6 +812,22 @@ function act(pid,m){
     }break;
   case 'watch':if(r&&r.role==='customs'&&ct)G.watch=!!m.on;break;   // 海關按住盯著旅客的眼睛，才知道他有沒有在看螢幕
   case 'task':if(r&&r.role==='traveler'&&r.bad&&G.phase==='inspect')G.trav[pid].taskDone=!G.trav[pid].taskDone;break;
+  case 'plant':if(mech('plant',G.cfg)&&r&&r.role==='backend'&&r.bad&&G.phase==='inspect'&&!G.plant){   // 栽贓：壞後台一局一次，只能塞還沒輪到櫃台的普通旅客
+      const q=Number.isInteger(m.q)?G.queue[m.q]:null,t=q&&G.trav[q];
+      if(!t||m.q<=G.cur||t.verdict||G.roles[q].bad){note(pid,'只能塞給還沒輪到櫃台的普通旅客');break}
+      if(!G.plantOpts.includes(m.k))break;
+      const c=CONTRA[m.k],it=plantInto(t.items,c);
+      if(!it){note(pid,`${t.passName} 的行李箱塞滿了，「${c[0]}」放不進去（這次不算，可以換一件或換一個人）`);break}
+      it.fits=t.id.job in c[4];
+      G.plant={by:pid,to:q,n:c[0],item:it,turn:G.cur};
+      G.belt.push({name:t.passName,turn:G.cur});   // 輸送帶紀錄：兩位後台都看得到，海關看不到
+      note(pid,`已經把「${c[0]}」塞進 ${t.passName} 的行李箱`);
+    }break;
+  case 'dump':if(r&&r.role==='customs'&&ct&&!ct.dump&&isOver(ct)){   // 超重：海關免費丟掉一件（只看得到形狀描述），每位旅客一次
+      const it=Number.isInteger(m.item)&&bagItems(ct)[m.item];if(!it)break;   // 超重的箱子不能指認，所以不用調整 G.flags 的索引
+      it.loc='dump';it.slot=null;settle(ct.items);ct.dump={n:it.n,x:it.x,m:!!it.m};
+      G.clog.push(`🗑️ 行李箱超重，丟掉了「${it.m?'金屬':'非金屬'}・${it.x}」${ct.opened?`（${it.n}）`:''}`);
+    }break;
   }
 }
 
@@ -536,19 +845,31 @@ function viewFor(pid){
   v.log=G.log.slice(-40).reverse();v.logN=G.log.length;
   if(G.phase==='end'){v.end=G.result;return v}
   v.queue=G.queue.map((q,i)=>({player:pname(q),pass:G.trav[q].passName,verdict:G.trav[q].verdict,cur:i===G.cur}));
+  if(G.phase==='inspect'&&mech('press',G.cfg))v.press={v:Math.round(G.press*10)/10,rate:PRESS_RATE*pressWaiting(),ap:PRESS_AP,max:PRESS_MAX};   // 數字一直在變：用心跳更新，客戶端自己往前推
   const cp=curPid(),ct=cp&&G.trav[cp],scr=G.backs.map(b=>G.screens[b]||'');
   const passport=ct?{name:ct.passName,looks:ct.looks,deco:ct.deco,player:pname(cp)}:null;
   const chat=G.chat.slice(-30).reverse();
   if(G.phase==='inspect'){
     const me=pid===cp,pose=G.pose&&G.pose.until>now?{g:G.pose.g,seq:G.pose.seq,left:G.pose.until-now}:null;
     v.gesture={active:me,name:ct?ct.passName:'',looks:ct?ct.looks:null,deco:ct?ct.deco:null,gestures:me?GESTURE:[],cooling:me&&(G.gestCd[pid]||0)>now,pose};
-    if(me)v.gesture.peek={on:G.peek.on,cooling:!G.peek.on&&now<G.peek.cd,n:scr.length,screens:G.peek.on?scr:null,count:G.peek.count};   // 螢幕內容只在抬頭的時候才送給旅客
+    if(me)v.gesture.peek={on:G.peek.on,cooling:!G.peek.on&&now<G.peek.cd,n:scr.length,screens:G.peek.on?(tierMode(G.cfg)==='C'?G.backs.map(b=>scrSeen(b,tierSee())):scr):null,count:G.peek.count};   // 螢幕內容只在抬頭的時候才送給旅客
     if(r.role==='customs'){
       const blocked=now<G.lookUntil,on=G.watch&&!blocked;
       v.gesture.watch={on,blocked};v.gesture.notice=on&&(G.peek.on||now<G.peek.noticeUntil);
     }
   }
+  if(G.phase==='inspect'&&ct&&mech('vote',G.cfg)){   // 公開投票：所有人都看得到誰投了什麼
+    v.votes=Object.entries(G.votes).map(([q,x])=>({name:pname(q),kind:G.roles[q].role==='backend'?'後台':'旅客',v:x}));
+    v.canVote=(r.role==='backend'||r.role==='traveler')&&pid!==cp;v.myVote=G.votes[pid]||null;
+  }
+  if(G.phase==='strike')v.strikeWait=G.queue.filter(q=>G.trav[q].strike&&G.trav[q].strike.st==='open').map(q=>G.trav[q].passName);
   // 點題狀態所有人都看得到（left 會一直變，pushAll 比對畫面時會把它歸零）
+  if(G.phase==='inspect'&&ct&&tierOn()){   // 線索解鎖：所有人都看得到開到第幾層；C 版的抬頭次數只給後台和櫃台前的旅客
+    const tm=tierMode(G.cfg),lv=tierSend(now),o={m:tm,lvl:lv,byQ:tm==='A'&&scrAsk(G.cfg)};
+    if(tm==='A'&&!o.byQ&&lv<3)o.next={n:lv+1,left:Math.max(0,G.turnAt+TIER_AT[lv]*1000-now)};
+    if(tm==='C'&&(r.role==='backend'||pid===cp))Object.assign(o,{see:tierSee(),peeks:G.peek.count});
+    v.tier=o;
+  }
   if(G.phase==='inspect'&&scrAsk(G.cfg))v.ask={n:G.qn,of:ASK_MAX,asked:Object.keys(G.asked),k:G.ask?G.ask.k:null,open:!!G.ask&&now<G.ask.until,left:G.ask?Math.max(0,G.ask.until-now):0,total:G.ask?G.ask.total:0};
   if(r.role==='customs'){
     const looking=now<G.lookUntil;
@@ -557,36 +878,59 @@ function viewFor(pid){
       metal:G.phase==='prep'?{prep:{editable:true,all:TOOL_IDS,max:LOADOUT_MAX,picked:G.loadout.picked,secret:G.loadout.secret}}:
         {active:!!ct,key:'t'+G.cur,slots:SLOTS,scanned:ct?ct.scanned:{},taken:ct?ct.taken:{},ap:G.ap,passport:ct?{name:ct.passName,looks:ct.looks}:null,
          tools:G.loadout.picked,tMax:G.cfg.turn,swab:ct?ct.swab:{},seen:ct?ct.xeye:{},wave:ct?ct.wave:null,dog:ct?ct.dog:null,heard:ct?ct.heard:{},kinds:KINDS},
-      wanted:G.wanted});
+      wanted:G.wanted,decl:ct&&mech('declare',G.cfg)?ct.items.filter(i=>i.dec&&i.loc!=='gift').map(i=>i.n):null,searched:!!(ct&&ct.searched),found:!!(ct&&ct.found),
+      bribe:ct&&ct.bribe?{n:ct.bribe.n,st:ct.bribe.st}:null});
     // 後台指認：海關只拿到形狀描述與材質；付點數開過的那一件才有名稱
+    if(G.phase==='inspect'&&ct&&(isOver(ct)||ct.dump))v.over={load:bagLoad(ct.items),max:OVER_CELLS,dump:ct.dump?{x:ct.dump.x,m:ct.dump.m,...(ct.opened?{n:ct.dump.n}:{})}:null,items:ct.dump?[]:bagItems(ct).map((i,k)=>({k,x:i.x,m:!!i.m,...(ct.opened?{n:i.n}:{})}))};   // 超重：可以免費丟一件
     v.flags=G.phase==='inspect'&&ct?G.backs.map(b=>{const f=G.flags[b],it=f&&bagItems(ct)[f.item];return it?{x:it.x,m:!!it.m,opened:f.opened,...(f.opened?{n:it.n}:{})}:null}):[];
   }else if(r.role==='backend'){
     Object.assign(v,{passport,chat,lookAlert:now<G.lookUntil,looks:G.looks,myScreen:G.screens[pid]||'',side:G.backs.length>1?G.backs.indexOf(pid):-1,scrCd:Math.max(0,(G.scrCd[pid]||0)-now),
       phr:ct?Object.keys(ct.phr).map(k=>({k,opts:ct.phr[k].map(x=>({v:x,t:String(x)===String(ct.id[k])}))})):null,
-      travs:G.queue.map((q,i)=>{const t=G.trav[q];return {player:pname(q),id:t.id,verdict:t.verdict,cur:i===G.cur,...(r.bad?{bad:G.roles[q].bad}:{}),
-        xray:G.phase==='inspect'?t.items.filter(x=>x.loc==='bag').map(x=>({sh:x.sh,gx:x.gx,gy:x.gy,gz:x.gz,r:x.r,x:x.x,m:x.m})):null}})});
+      travs:G.queue.map((q,i)=>{const t=G.trav[q];return {player:pname(q),id:t.id,verdict:t.verdict,cur:i===G.cur,decl:G.phase==='prep'||!mech('declare',G.cfg)?null:t.items.filter(x=>x.dec&&x.loc!=='gift').map(x=>x.n),...(r.bad?{bad:G.roles[q].bad}:{}),
+        xray:G.phase==='inspect'&&!isOver(t)?t.items.filter(x=>x.loc==='bag').map(x=>({sh:x.sh,gx:x.gx,gy:x.gy,gz:x.gz,r:x.r,x:x.x,m:x.m})):null,...(G.phase==='inspect'&&isOver(t)?{messy:true,blob:blobOf(t.items)}:{})}})});
+    if(mech('plant',G.cfg))v.belt=G.belt.map(b=>({name:b.name,turn:b.turn,fresh:b.turn===G.cur}));   // 輸送帶紀錄：兩位後台都看得到
+    if(mech('plant',G.cfg)&&r.bad&&G.phase==='inspect')v.plant=G.plant?{used:true,to:G.trav[G.plant.to].passName,n:G.plant.n}:
+      {used:false,opts:G.plantOpts.map(k=>({k,n:CONTRA[k][0],x:CONTRA[k][1],cells:cells(CONTRA[k][3],0).length})),
+       targets:G.queue.map((q,i)=>({q:i,name:G.trav[q].passName,player:pname(q),load:bagLoad(G.trav[q].items),ok:i>G.cur&&!G.trav[q].verdict&&!G.roles[q].bad})).filter(x=>x.ok)};
     v.flag=G.phase==='inspect'&&ct&&G.flags[pid]?{item:G.flags[pid].item,opened:G.flags[pid].opened}:null;   // 只有自己的指認，看不到另一位後台的
     if(scrFeat(G.cfg)&&ct)v.phr=Object.keys(ct.phr).map(k=>({k,truth:ct.id[k]+scrUnit(k),memo:scrMemo(k,ct.id[k])}));   // 特徵詞版：答案只能看，不給可送出的選項
     if(v.ask)v.askSent=!!G.asent[pid];
+    if(ct&&tierOn()){   // 線索三層：每欄第一、二層的選項（✓＝真的）；第三層就是上面的 phr
+      v.tierOpts=Object.fromEntries(Object.entries(tierOpts(ct)).map(([k,o])=>{const p=tierPath(k,ct.id[k]);return [k,{1:o[1].map(x=>({v:x,t:x===p[0]})),2:o[2].map(x=>({v:x,t:x===p[1]}))}]}));
+      v.scrCdN=(G.scrCdN||{})[pid]||0;
+    }
   }else{
     const t=G.trav[pid],idx=G.queue.indexOf(pid),at=pid===cp;
     const sheetOn=G.phase==='prep'||idx>G.cur||(at&&now<G.peekUntil);
-    Object.assign(v,{passport:{name:t.passName,looks:t.looks,deco:t.deco},real:t.real,items:t.items.map((i,k)=>({i:k,n:i.lg?i.n+'（職業用品，合法）':i.n,x:i.x,m:i.m,c:i.c,sh:i.sh,loc:i.loc,gx:i.gx,gy:i.gy,gz:i.gz,r:i.r,slot:i.slot})),
+    Object.assign(v,{passport:{name:t.passName,looks:t.looks,deco:t.deco},real:t.real,items:t.items.map((i,k)=>({i:k,n:i.lg?i.n+'（職業用品，合法）':i.n,x:i.x,m:i.m,c:i.c,sh:i.sh,loc:i.loc,gx:i.gx,gy:i.gy,gz:i.gz,r:i.r,slot:i.slot,dec:!!i.dec})).filter(x=>{const o=t.items[x.i];return o.loc!=='gift'&&o.loc!=='dump'&&!o.pl}),   // 被栽贓的那件旅客自己看不到
       tools:t.items.filter(i=>i.lg).map(i=>({n:i.n,why:i.why})),customsTools:G.loadout.picked.filter(x=>x!==G.loadout.secret),customsSecret:!!G.loadout.secret,task:t.task,taskDone:t.taskDone,at,pos:idx-G.cur,myVerdict:t.verdict,
       memoir:r.bad?null:memoir(t.id,t.clear),sheet:r.bad&&sheetOn?t.id:null,peek:r.bad&&at&&now<G.peekUntil});
     if(!r.bad)v.taskSys=taskLive(pid);
+    v.bribe=t.bribe?{n:t.bribe.n,st:t.bribe.st}:null;v.strike=t.strike;
+    if(mech('overweight',G.cfg)){v.load=bagLoad(t.items.filter(i=>!i.pl));v.overMax=OVER_CELLS}v.dumped=t.items.filter(i=>i.loc==='dump'&&!i.pl).map(i=>i.n);   // 格數不算被栽贓的那件，免得露餡
   }
   return v;
 }
 
+// 排隊抱怨值：櫃台後面每多一個人在等，每秒 +PRESS_RATE。往上越過 50 扣海關 1 點；到 100 長官介入（這位最多只剩 20 秒），降回 60
+const PRESS_RATE=.7,PRESS_AP=50,PRESS_MAX=100,PRESS_BACK=60,PRESS_CAP=20,PRESS_QUICK=60,PRESS_RELIEF=25;
+const pressWaiting=()=>Math.max(0,G.queue.length-G.cur-1);
+function pressTick(now){
+  const dt=G.pressAt?Math.min(2,(now-G.pressAt)/1000):0,was=G.press;G.pressAt=now;
+  G.press=Math.min(PRESS_MAX,G.press+dt*PRESS_RATE*pressWaiting());
+  if(was<PRESS_AP&&G.press>=PRESS_AP){if(G.ap>0)G.ap--;log(`😤 排隊的人開始抱怨了！長官打電話來關切：海關行動點數 −1（剩 ${G.ap} 點）`)}
+  if(G.press>=PRESS_MAX){G.press=PRESS_BACK;G.deadline=Math.min(G.deadline,now+PRESS_CAP*1000);log(`🧑‍💼 隊伍快爆炸了，長官親自到櫃台：這位旅客最多只剩 ${PRESS_CAP} 秒！`)}
+}
 const PEEK_MAX=4000,PEEK_CD=1000,PEEK_NOTICE=1500;
 function peekDown(now){G.peek.on=false;G.peek.noticeUntil=now+PEEK_NOTICE;G.peek.cd=now+PEEK_CD}
 function tick(){
   const now=Date.now();
   if(G.phase==='inspect'&&G.peek.on&&now-G.peek.start>=PEEK_MAX)peekDown(now);
   if(!sim)for(const p of G.players)if(p.pid!==G.hostPid)p.on=now-(lastSeen[p.pid]||0)<8000;
+  if(G.phase==='inspect'&&mech('press',G.cfg))pressTick(now);
   if(G.phase==='prep'&&now>=G.deadline)startInspect();
   else if(G.phase==='inspect'&&now>=G.deadline)verdict(pick(['pass','arrest']),true);
+  else if(G.phase==='strike'&&(now>=G.deadline||!strikePending()))endGame();
   pushAll();
 }
 function pushAll(){
@@ -595,9 +939,9 @@ function pushAll(){
     if(p.pid===G.hostPid){const nv=viewFor(p.pid);fx(V,nv);V=nv;vAt=performance.now()}
     else{
       // 畫面有變才送整份；沒變的話每 2 秒送一個很小的心跳（帶序號，對方發現漏接會自己來要）
-      const v=viewFor(p.pid),key=JSON.stringify({...v,remain:0,scrCd:v.scrCd>0,ask:v.ask&&{...v.ask,left:0},gesture:v.gesture&&{...v.gesture,pose:v.gesture.pose&&{...v.gesture.pose,left:0}}}),ls=lastSent[p.pid],now=Date.now();
+      const v=viewFor(p.pid),key=JSON.stringify({...v,remain:0,scrCd:v.scrCd>0,ask:v.ask&&{...v.ask,left:0},tier:v.tier&&{...v.tier,next:v.tier.next&&{...v.tier.next,left:0}},press:v.press&&{...v.press,v:0},gesture:v.gesture&&{...v.gesture,pose:v.gesture.pose&&{...v.gesture.pose,left:0}}}),ls=lastSent[p.pid],now=Date.now();
       if(!ls||ls.key!==key){const seq=(ls?ls.seq:0)+1;pub('down/'+p.pid,{t:'view',seq,v});lastSent[p.pid]={key,at:now,seq}}
-      else if(now-ls.at>2000){pub('down/'+p.pid,{t:'hb',seq:ls.seq,remain:v.remain});ls.at=now}
+      else if(now-ls.at>2000){pub('down/'+p.pid,{t:'hb',seq:ls.seq,remain:v.remain,press:v.press?v.press.v:null});ls.at=now}
     }
   }
   render();
@@ -640,6 +984,8 @@ function simBar(){
   return `<div class="card simbar"><b>🧪 單人模擬</b> <span class="dim">不用開房、不用連線。點下面切換你要扮演的角色，每個角色的畫面跟真的一樣；其他角色不會自己動，要你切過去操作。</span>
     <div style="margin-top:6px">${order.map(q=>btn(simLabel(q),{local:'simAs',pid:q},q===sim.as?'go':'')).join('')}</div>
     <div style="margin-top:4px"><span class="dim">螢幕版本（按了會重新發一局）：</span>${SCR_VARS.map(x=>btn(SCR_NAME[x],{local:'simScr',v:x},'sm'+(scrVar(G.cfg)===x?' go':''))).join('')}</div>
+    <div style="margin-top:4px"><span class="dim">這局套用的機制（按了會重新發一局）：</span>${MECHS.map(d=>btn(`${mech(d.k,G.cfg)?'☑':'☐'} ${d.name}`,{local:'simMech',k:d.k},'sm'+(mech(d.k,G.cfg)?' go':''))).join('')}</div>
+    <div style="margin-top:4px"><span class="dim">線索解鎖（按了會重新發一局）：</span>${TIER_MODES.map(x=>btn(TIER_NAME[x],{local:'simTier',v:x},'sm'+(tierMode(G.cfg)===x?' go':''))).join('')}</div>
     <div style="margin-top:4px">${G.phase==='prep'?btn('⏭ 跳過準備時間',{local:'simSkip'},'sm'):''}${btn('🔄 重新發一局',{local:'simNew'},'sm')}${btn('✖ 離開模擬',{local:'simExit'},'sm no')}
     <span class="dim">模擬裡的時間放得很寬（準備 10 分鐘、每位旅客 15 分鐘）。</span></div></div>`;
 }
@@ -690,7 +1036,7 @@ function joinRoom(code){
     else if(d.t==='hb'){
       lastView=Date.now();
       if(!V||d.seq!==vSeq){pub('up',{pid:myPid,m:{t:'hello',name:myName}});return}   // 漏接了一份畫面 → 請房主重送
-      V.remain=d.remain;vAt=performance.now();if(status){status='';render()}
+      V.remain=d.remain;if(V.press&&d.press!=null)V.press.v=d.press;vAt=performance.now();if(status){status='';render()}
     }
     else if(d.t==='err')leave(d.msg);
   });
@@ -716,6 +1062,7 @@ const hero=(img,title,sub,cls='',pos='center')=>`<div class="hero wide ${cls}" s
 function sceneHtml(v){
   if(v.phase==='lobby')return hero('overview','候機大廳','等所有人到齊就出發');
   if(v.phase==='end')return hero('podium','今日結算','誰騙過了誰？','tall','center 30%');
+  if(v.phase==='strike')return `<div class="hero wide" style="background:#10141c">${window.Mini&&Mini.props?Mini.props.banner('strike'):''}<div class="cap"><b>最後一擊</b>通緝犯在押注：哪個螢幕是好後台的？</div></div>`;
   if(v.role==='customs')return v.phase==='prep'?hero('selfie','海關值勤前','把通緝名單背起來','','center 35%'):hero('pov','海關櫃台','問話、檢查、蓋章','','center 40%');
   if(v.role==='backend')return hero('desk','後台監控室',v.bad?'你是內鬼，別被發現':'幫海關把關','','center 45%');
   return hero('cover','入境排隊區',v.bad?'你是通緝犯，混過去':'你只是個普通旅客','','center 55%');
@@ -726,9 +1073,32 @@ function play(n,delay=0){
   if(muted)return;
   setTimeout(()=>{try{const a=(SND[n]||(SND[n]=new Audio('art/'+n+'.mp3'))).cloneNode();a.volume=.6;a.play().catch(()=>{})}catch(e){}},delay);
 }
+// 合成音效（不用音檔）：小遊戲的變頻嗶聲、心跳；buzz 讓手機震動
+const sfx=(()=>{
+  let ac=null;
+  const ctx=()=>{if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ac&&ac.state==='suspended')ac.resume().catch(()=>{});return ac};
+  function tone(f,ms=80,type='sine',vol=.15,to){
+    if(muted)return;const c=ctx();if(!c)return;
+    const t=c.currentTime,o=c.createOscillator(),g=c.createGain();
+    o.type=type;o.frequency.setValueAtTime(f,t);if(to)o.frequency.exponentialRampToValueAtTime(to,t+ms/1000);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+ms/1000);
+    o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+ms/1000+.02);
+  }
+  const buzz=p=>{try{const ua=navigator.userActivation;if(!muted&&navigator.vibrate&&(!ua||ua.hasBeenActive))navigator.vibrate(p)}catch(e){}};   // 還沒點過畫面的話瀏覽器會擋，乾脆不叫
+  return {tone,buzz,heart(){tone(75,130,'sine',.5,45);setTimeout(()=>tone(62,150,'sine',.4,40),170)}};
+})();
+function shake(){const a=document.getElementById('app');a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake')}
+function roleFlip(v){
+  const sub=v.role==='customs'?'不知道任何人的陣營':v.role==='backend'?(v.bad?'😈 內鬼：讓通緝犯過關':'😇 幫海關全部判對'):(v.bad?'😈 通緝犯：想辦法混過去':'😇 普通旅客：出境＋完成任務');
+  show(`<div class="flipcard"><div class="in"><div class="b">?</div><div class="f">${ROLE_NAME[v.role]}<small>${sub}</small></div></div></div>`,3200);
+  setTimeout(()=>{play('pop');sfx.tone(520,120,'triangle',.15,880)},1150);
+}
+const prop=(k,n=48)=>window.Mini&&Mini.props?Mini.props.svg(k,n):'';
+const ico=(n,bad)=>window.Mini&&Mini.props?Mini.props.icon(n,bad):'';
 function show(html,ms){const el=document.getElementById('fx');el.innerHTML=html;clearTimeout(show.t);show.t=setTimeout(()=>el.innerHTML='',ms)}
 // 比對前後兩次畫面，對新出現的現場動態播放特效
 function fx(prev,v){
+  if(v.phase==='prep'&&v.role&&(!prev||prev.phase!=='prep'))roleFlip(v);   // 發角色：翻牌
   if(!prev)return;
   if(v.screens&&prev.screens&&v.screens.some(Boolean)&&JSON.stringify(v.screens)!==JSON.stringify(prev.screens))play('pop');
   let pn=prev.logN||0;const n=v.logN||0;if(n<pn)pn=0;
@@ -744,8 +1114,12 @@ function fx(prev,v){
     else if(l.startsWith('🙋'))play('pop');
     else if(l.startsWith('🧑‍✈️')||l.startsWith('⏰')){
       const ok=l.includes('放行');
-      show(`<div class="stamp ${ok?'pass':'arrest'}">${ok?'放行 PASS':'抓人 ARREST'}</div>`,1800);play('stamp');play(ok?'pass':'arrest',180);
-    }else if(l.startsWith('🏁'))play('tada',1500);
+      show(`<div class="stamp ${ok?'pass':'arrest'}">${ok?'放行 PASS':'抓人 ARREST'}</div>`,1800);play('stamp');play(ok?'pass':'arrest',180);shake();sfx.buzz([60,30,120]);
+    }else if(l.startsWith('😤')||l.startsWith('🧑‍💼')){
+      const boss=l.startsWith('🧑‍💼');play(boss?'arrest':'deduct');shake();sfx.buzz(boss?[200,80,200]:150);
+      show(`<div class="stamp arrest" style="font-size:34px">${boss?'🧑‍💼 長官介入！':'😤 抱怨！海關 −1 點'}</div>`,1800);
+    }else if(l.startsWith('😌'))play('pop');
+    else if(l.startsWith('🏁'))play('tada',1500);
   }
 }
 new Image().src='art/wand.jpg';
@@ -753,7 +1127,7 @@ new Image().src='art/wand.jpg';
 // 指引：現在是哪一步、你該做什麼、其他人在做什麼
 function guideHtml(v){
   const steps=['大廳','準備時間',...(v.queue||v.end?(v.queue||v.end.travs).map((q,i)=>`第 ${i+1} 位旅客`):['旅客通關']),'結算'];
-  const curIdx=v.phase==='lobby'?0:v.phase==='prep'?1:v.phase==='end'?steps.length-1:2+v.queue.findIndex(q=>q.cur);
+  const curIdx=v.phase==='lobby'?0:v.phase==='prep'?1:v.phase==='end'||v.phase==='strike'?steps.length-1:2+v.queue.findIndex(q=>q.cur);
   const stepBar=steps.map((s,i)=>`<span class="step${i===curIdx?' on':i<curIdx?' done':''}">${i<curIdx?'✔ ':''}${s}</span>`).join('<span class="dim">›</span>');
   let me=[],others='';
   if(v.phase==='lobby'){
@@ -764,24 +1138,86 @@ function guideHtml(v){
     else if(v.role==='backend')me=['讀每位旅客的條列資料，等一下要拿來核對他們講的話',v.bad?'你是內鬼，而且知道誰是通緝犯（名字旁邊有標）：先想好怎麼讓海關放過他，但別被看穿':'你是好人：等一下如實回報，幫海關判對','準備時間到了會自動開始'];
     else if(v.bad)me=['把假身分小抄背起來，輪到你時會被收走','把行李疊進行李箱或藏到身上：行李箱後台看得到形狀，藏身上的金屬會被掃到','你的長相跟通緝令一模一樣、改不了：想好被海關盯著看時要怎麼轉移注意力','想打扮就打扮一下（純娛樂），準備時間到了會自動開始'];
     else me=['讀一下回憶錄（整局都看得到）：裡面只有模糊的印象，先想好被問「幾歲、做什麼、從哪來」要怎麼回答','把行李疊進行李箱，或把小東西藏到身上（超過 3 格的藏不了）','想打扮就打扮一下（純娛樂），準備時間到了會自動開始'];
+    if(v.role==='traveler')me.push(`勾「申報單」：沒申報的東西被海關搜到，他拿回 ${DECL_REFUND} 點；他搜了卻沒抓到，他要賠 ${DECL_FINE} 點。${v.bad?'要不要老實申報違禁品、編個理由，由你決定':'危險的職業用品申報了也要準備好解釋'}`);
     if(v.role==='traveler'&&!v.bad)me.splice(2,0,'看一下你的專屬任務：系統會自動判定、不用按鈕。有些任務現在就要準備（例如把金屬物品藏到身上）');
+    if(v.role==='traveler'&&mech('overweight',v.cfg))me.push(`行李箱別塞太滿：用掉的空間到 ${OVER_CELLS} 格（整個箱子 ${GRID.w*GRID.h*GRID.d} 格，壓在底下的空隙也算）就算<b>超重</b>——海關可以免費丟掉你一件，後台的 X 光會疊成一團看不清。堆行李卡片上有目前格數`);
+    if(v.role==='backend'&&mech('plant',v.cfg))me.push(v.bad?'通關開始後，你可以<b>栽贓一次</b>：把一件違禁品塞進一位還沒輪到櫃台的普通旅客的行李箱。他被海關扣留，你就拿「最佳栽贓」和表現分。代價：兩位後台都會看到「某某的行李被動過」':'通關時注意「輸送帶紀錄」：壞後台一局可以偷偷往一位旅客的行李箱塞一件違禁品，塞了你就會看到「某某的行李被動過」（不知道哪一件、誰動的）');
     others='同一時間：海關在看通緝名單、後台在讀旅客資料、旅客在堆行李（壞旅客還要背小抄）。準備時間固定跑完，不能提早開始。';
   }else if(v.phase==='inspect'){
     const cur=v.queue.find(q=>q.cur),who=cur?`${esc(cur.pass)}（${esc(cur.player)}）`:'';
-    if(v.role==='customs')me=[`用語音審問 ${who}：姓名、職業、從哪來、來做什麼、住哪…`,'看「耳機」裡後台回報旅客答得對不對（兩位後台有一個是內鬼）。普通旅客只記得大概，答得模糊但對得上是正常的；答得一字不差反而像背稿','比對護照照片跟通緝名單：一模一樣就是通緝犯，只差一個地方的是無辜的（背景和小配件是旅客自己打扮的，不算）。隨時可以按「翻開通緝名單」再看',`用工具箱裡帶來的招查旅客身上（每招只查得到一種東西，大多免費但花時間），查到可疑的位置可以花 2 點取出；開行李也是 2 點（整局共用，剩 ${v.ap} 點）`,'按住「盯著旅客的眼睛」可以抓到他偷看螢幕：常常要看螢幕才答得出來的人比較可疑','搜到危險物品先別急著抓：問他為什麼帶。有些人是工作需要，講得出合理的理由；通緝犯沒有現成的理由，只能當場掰，但掰得好的也有','倒數結束前按「放行」或「抓人」，超時系統會亂判'];
+    if(v.role==='customs')me=[`用語音審問 ${who}：姓名、職業、從哪來、來做什麼、住哪…`,'看「耳機」裡後台回報旅客答得對不對（兩位後台有一個是內鬼）。普通旅客只記得大概，答得模糊但對得上是正常的；答得一字不差反而像背稿','比對護照照片跟通緝名單：一模一樣就是通緝犯，只差一個地方的是無辜的（背景和小配件是旅客自己打扮的，不算）。隨時可以按「翻開通緝名單」再看',`用工具箱裡帶來的招查旅客身上（每招只查得到一種東西，大多免費但花時間），查到可疑的位置可以花 2 點取出；開行李也是 2 點（整局共用，剩 ${v.ap} 點）`,'按住「盯著旅客的眼睛」可以抓到他偷看螢幕：常常要看螢幕才答得出來的人比較可疑','搜到危險物品先別急著抓：問他為什麼帶。有些人是工作需要，講得出合理的理由；通緝犯沒有現成的理由，只能當場掰，但掰得好的也有',`排隊抱怨值會一直漲：到 ${PRESS_AP} 扣你 1 點、到 ${PRESS_MAX} 長官介入（這位最多只剩 ${PRESS_CAP} 秒）；${PRESS_QUICK} 秒內判完一位可以消一點氣`,'倒數結束前把「放行」或「抓人」印章拖到護照上，超時系統會亂判'];
     else if(v.role==='backend')me=[`聽 ${who} 回答海關的問題，對照下面那張條列資料`,v.bad?'打字回報給海關——你是內鬼，可以說謊幫壞旅客過關，也可以把普通旅客的小出入說成大破綻，但別太明顯':'打字告訴海關答得對不對。普通旅客只有模糊的回憶錄（例如只知道「五十出頭」），差一點是正常的，差很多才可疑',v.bad?'你知道誰是通緝犯：幫他掩護、把嫌疑引到普通旅客身上；X 光的可疑形狀要不要講由你決定':'看 X 光，有可疑形狀就提醒海關開行李',`用定型的詞組一句話送上你的螢幕（最多 ${SCR_MAX} 個字，例如「職業是廚師」）：旅客看得到兩個螢幕，另一位後台看不到你的，海關要回頭才看得到`];
     else if(v.myVerdict)me=v.bad?['你已經判完了，可以旁聽後面的審問','任務如果完成了，記得按「我完成任務了」']:['你已經判完了，可以旁聽後面的審問','你的任務系統已經判定好了，結果寫在下面的「專屬任務」'];
     else if(v.at)me=v.bad?['用語音回答海關，小抄已經被收走，靠記憶講','海關一回頭就趕快偷看小抄（只有 4 秒）','按住「抬頭看螢幕」才看得到海關背後的螢幕（其中一位後台是內鬼，提示不一定是真的）；海關盯著你的時候抬頭會被發現。也可以比動作','想辦法完成專屬任務，完成就按鈕']:['用語音回答海關：回憶錄只有大概，把它換成自己的話講，被追問精確數字就合理地估','想辦法完成專屬任務：系統會自動判定、不用按鈕，進度寫在下面（要出境＋完成任務才算贏）','按住「抬頭看螢幕」才看得到海關背後的螢幕（其中一位後台是內鬼，提示不一定是真的）；海關盯著你的時候抬頭會被發現。也可以比動作'];
     else me=v.bad?['還沒輪到你，趁小抄還在趕快再背一次','聽海關都問些什麼問題']:['還沒輪到你，先聽海關都問些什麼問題'];
+    if(v.role==='customs')me.splice(1,0,`先看「申報單」：搜查抓到沒申報的東西拿回 ${DECL_REFUND} 點；搜了卻沒抓到，下判時賠 ${DECL_FINE} 點`,`旅客可能偷遞伴手禮：收下就必須放行（表現分 +${PTS.bribe}，不加行動點數），收到通緝犯的你直接輸`,'看「公開投票」：後台和其他旅客各投放行／扣留，票全部公開、結算留紀錄。內鬼的票通常有規律');
+    if(v.role==='backend'||(v.role==='traveler'&&!v.at))me.push('「公開投票」：海關下判前投放行或扣留，可以改票；誰投了什麼全部公開，結算會對答案');
+    if(v.role==='traveler'&&v.at&&!v.myVerdict)me.push('可以偷偷遞一件行李當伴手禮（賄賂，只能一次）：海關收下就一定要放行');
+    if(v.role==='traveler'&&v.bad)me.push(`被扣留的話有「最後一擊」：押注兩個螢幕哪個是好後台的。猜中＝好後台不算贏；猜錯＝你和壞後台都輸`);
     if(v.role==='customs')me.splice(4,0,`「後台指認」：後台${(v.flags||[]).length>1?'各':''}可以在 X 光上指一件可疑的東西，你只看得到形狀描述。花 1 點可以只開那一件；開到普通物品算白開、再扣 1 點${(v.flags||[]).length>1?'。兩位後台有一個是內鬼，他指的可能是故意浪費你的點數':''}`);
     if(v.role==='backend')me.push(v.bad?'指認：在櫃台前旅客的 X 光上點一件東西，按「指給海關」（這位旅客只能指一件，另一位後台看不到你指了什麼）。海關花 1 點開它，開到普通物品會再多扣 1 點——你可以故意指普通的東西騙他浪費點數，或是不指':'指認：在櫃台前旅客的 X 光上點一件最可疑的東西，按「指給海關」（這位旅客只能指一件，另一位後台看不到你指了什麼）。海關花 1 點就能只開那一件；指到普通物品會害他多扣 1 點，沒把握可以不指');
+    if(v.role==='customs'&&mech('overweight',v.cfg))me.push(`行李箱<b>超重</b>（用掉 ${OVER_CELLS} 格以上）的旅客，你可以<b>免費丟掉一件</b>：只看得到形狀描述，丟掉就不見了`);
+    if(v.role==='backend'&&mech('plant',v.cfg))me.push(v.bad?(v.plant&&!v.plant.used?'😈 <b>你還可以栽贓一次</b>：在「栽贓」卡片挑一位還沒輪到的普通旅客和一件違禁品。輸送帶紀錄會讓兩位後台都知道他的行李被動過，你可以搶先反咬':'你已經栽贓過了：等他上櫃台，看海關會不會開到'):'看「輸送帶紀錄」：出現某位旅客的行李被動過，就是壞後台栽贓了。去 X 光找多出來的可疑形狀，用耳機提醒海關（但壞後台也會講，他可能反咬）');
+    me.push(`表現分（不影響勝負，結算排名、頒稱號）：${v.role==='customs'?`判對一位 +${PTS.judge}、查到沒申報 +${PTS.found}、收下伴手禮 +${PTS.bribe}`:v.role==='backend'?`投票投對 +${PTS.vote}、指認被開到違禁品 +${PTS.flagHit}${v.bad?`、指認騙海關白開 +${PTS.flagWaste}、通緝犯出境 +${PTS.badHelp}${mech('plant',v.cfg)?`、栽贓成功 +${PTS.plant}`:''}`:''}`:v.bad?`出境 +${PTS.badOut}、海關搜了白搜 +${PTS.fine}、最後一擊押中 +${PTS.strike}`:`出境 +${PTS.goodOut}、出境又完成任務再 +${PTS.goodTask}、投票投對 +${PTS.vote}`}`);
     me.push(...scrGuide(v));
-    others=`現在櫃台是 ${who}。每一位的流程：海關問話 → 後台用耳機回報 → 海關檢查 → 放行／抓人 → 換下一位。`;
+    others=`現在櫃台是 ${who}。每一位的流程：海關問話 → 後台用耳機回報 → 海關檢查 → 蓋章（放行／抓人）→ 換下一位。排隊抱怨值所有人都看得到，越久海關越吃虧。`;
+  }else if(v.phase==='strike'){
+    me=v.strike&&v.strike.st==='open'?['你被扣留了：決定要不要押「最後一擊」，猜哪個螢幕是好後台的']:['等被扣留的通緝犯決定最後一擊，馬上就結算'];
+    others='通緝犯可以押注哪個螢幕是好後台的：猜中好後台不算贏，猜錯通緝犯和壞後台都輸。';
   }else{
-    me=['看下面的結算表：每個人各自算輸贏',sim?'想再玩就按上面的「重新發一局」':v.isHost?'想再玩就按「再來一局」，會重新發角色':'等房主開下一局'];
+    me=['看下面的結算表：每個人各自算輸贏','看「表現分排行」：誰拿了幾分、什麼稱號（不影響勝負）',sim?'想再玩就按上面的「重新發一局」':v.isHost?'想再玩就按「再來一局」，會重新發角色':'等房主開下一局'];
     others='所有人的身分、行李、通緝名單都公開了，可以對答案。';
   }
+  me=mechClean(me,v.cfg);others=mechText(others,v.cfg);
   return `<div class="card wide guide"><div class="steps">${stepBar}</div><h2>👉 你現在要做的事</h2><ol>${me.map(m=>`<li>${m}</li>`).join('')}</ol><p class="dim" style="margin:6px 0 0">${others}</p></div>`;
+}
+
+// 置頂的一行：你現在最該做的事＋能做的事（跟著狀態變，換了內容會閃一下）
+function nowInfo(v){
+  let d='',c=[],urgent=false;
+  const cur=v.queue&&v.queue.find(q=>q.cur),who=cur?esc(cur.pass):'',a=v.ask;
+  if(v.phase==='lobby'){d=v.isHost?'等組員進來（至少 3 人），然後按「開始遊戲」':'等房主按「開始遊戲」';if(v.isHost)c=['改設定','指定海關','移出玩家']}
+  else if(v.phase==='prep'){
+    if(v.role==='customs'){d='背通緝名單，選這回合要帶的招';c=['選最多 3 招','藏一招不讓旅客知道','看通緝名單']}
+    else if(v.role==='backend'){d=v.bad?'讀旅客資料，想好怎麼掩護通緝犯':'讀旅客資料，等一下要拿來核對';c=['看每位旅客的條列資料',...(mech('plant',v.cfg)?[v.bad?'通關開始後可以栽贓一次':'通關時注意輸送帶紀錄']:[])]}
+    else{d=v.bad?'背小抄、堆行李、勾申報單（輪到你時小抄會被收走）':'讀回憶錄、堆行李、勾申報單';c=['疊進行李箱','藏到身上','勾申報單','打扮（純娛樂）','看任務',...(v.load!=null?[`行李 ${v.load}／${v.overMax} 格${v.load>=v.overMax?' ⚖️ 超重了':''}`]:[])]}
+  }else if(v.phase==='inspect'){
+    if(v.role==='customs'){
+      if(v.bribe&&v.bribe.st==='offer'){d=`${who} 遞上伴手禮：收下（必須放行）還是拒收？`;urgent=true}
+      else if(a&&a.open)d=`正在問「${ID_LABEL[a.k]}」：聽 ${who} 回答`;
+      else if(a&&a.n<a.of)d=`點一欄開始盤問 ${who}（第 ${a.n+1}/${a.of} 題），查完把印章拖到護照上`;
+      else d=`審問 ${who}：問話 → 檢查 → 把印章拖到護照上`;
+      c=['看申報單','看投票',`開行李（−2，剩 ${v.ap} 點）`,'工具箱查身上','翻通緝名單','回頭看螢幕','按住盯旅客眼睛'];
+      if((v.flags||[]).some(f=>f&&!f.opened))c.push('開後台指的那件（−1）');
+      if(v.over&&!v.over.dump){c.unshift('⚖️ 超重：免費丟掉一件');if(!urgent)d+='｜⚖️ 這個箱子超重，可以免費丟掉一件'}
+    }else if(v.role==='backend'){
+      if(v.lookAlert){d='海關正在回頭看螢幕！';urgent=true}
+      else if(a&&a.open&&!v.askSent){d=`海關在問「${ID_LABEL[a.k]}」：快送一句到你的螢幕`;urgent=true}
+      else d=`聽 ${who} 回答，打字到耳機告訴海關`;
+      c=['耳機打字','組句送螢幕',v.flag?'已指認（可以改）':'X 光指一件給海關',v.myVote?'改票':'投票：放行／扣留','對申報單'];
+      if(v.plant&&!v.plant.used)c.unshift('😈 你還可以栽贓一次');
+      const fb=(v.belt||[]).find(b=>b.fresh);if(fb){c.unshift('🛄 看輸送帶紀錄');if(!v.bad&&!urgent){d=`🛄 輸送帶紀錄：${esc(fb.name)} 的行李被動過！`;urgent=true}}
+    }else if(v.strike&&v.strike.st==='open'){d='你被扣留了：要不要押「最後一擊」？';urgent=true;c=['猜哪個螢幕是好後台的','放棄']}
+    else if(v.myVerdict){d=v.canVote&&!v.myVote?'投票：櫃台這位該放行還是扣留？':v.myVerdict==='pass'?'你已經出境了，旁聽後面的審問':'你被抓了，旁聽後面的審問';c=v.canVote?[v.myVote?'改票':'投票']:[]}
+    else if(v.at){d='輪到你了！用語音回答海關';urgent=true;c=['按住抬頭看螢幕','比動作',...(v.bribe?[]:['遞伴手禮（賄賂）']),...(v.bad?['海關回頭時偷看小抄','完成任務就按鈕']:['看任務進度'])]}
+    else{d=v.canVote&&!v.myVote?'投票：櫃台這位該放行還是扣留？':v.pos<=1?'下一個就是你：先聽海關怎麼問':`排隊中，前面還有 ${v.pos-1} 人：先聽海關怎麼問`;c=[v.myVote?'改票':'投票',v.bad?'趁小抄還在再背一次':'再讀一次回憶錄','看排隊抱怨值']}
+    const tn=tierNow(v);if(tn&&(v.role!=='traveler'||(v.at&&!v.myVerdict)))c.unshift('🔓 '+tn);
+  }else if(v.phase==='strike'){d=v.strike&&v.strike.st==='open'?'最後一擊：猜哪個螢幕是好後台的':'等通緝犯決定最後一擊';urgent=!!(v.strike&&v.strike.st==='open')}
+  else{d='看結算對答案';if(v.isHost&&!sim)c=['再來一局']}
+  if(!mech('declare',v.cfg))d=d.replace('、勾申報單','');
+  return {d,c:mechClean(c,v.cfg),urgent};
+}
+let nowLast={d:'',at:0};
+function nowHtml(v){
+  const n=nowInfo(v),t=performance.now();
+  if(n.d!==nowLast.d)nowLast={d:n.d,at:t};
+  return `<div class="now${n.urgent?' urgent':''}${t-nowLast.at<1200?' fresh':''}">👉 <span class="do">${n.d}</span>${n.c.length?`<span class="can">能做：${n.c.map(x=>`<span>${x}</span>`).join('')}</span>`:''}</div>`;
+}
+function pressHtml(v){
+  const p=v.press;if(!p)return '';
+  const n=Math.round(p.rate/PRESS_RATE);
+  return `<div class="card wide press"><b>😤 排隊抱怨值 <span data-pressn></span></b><div class="pbar"><i data-press style="width:${p.v}%"></i><s style="left:${p.ap}%"></s></div>
+    <span class="dim" style="font-size:13px;flex-basis:100%">${n?`後面還有 ${n} 人在等，每秒 +${p.rate.toFixed(1)}`:'後面沒人在等了，不會再漲'}｜到 ${p.ap}：海關 −1 點｜到 ${p.max}：長官介入，這位只剩 ${PRESS_CAP} 秒｜${PRESS_QUICK} 秒內判完一位：−${PRESS_RELIEF}</span></div>`;
 }
 
 function setHtml(el,html){
@@ -798,19 +1234,20 @@ function setHtml(el,html){
 
 function render(){
   const app=document.getElementById('app');
-  if(!V){setHtml(app,homeHtml());syncMini(null);return}
-  const v=V,phaseName={lobby:'大廳',prep:'準備時間',inspect:'通關中',end:'結算'}[v.phase];
+  if(!V){setHtml(app,homeHtml());syncMini(null);document.querySelectorAll('#rules [data-mech]').forEach(n=>n.hidden=false);return}
+  const v=V,phaseName={lobby:'大廳',prep:'準備時間',inspect:'通關中',strike:'最後一擊',end:'結算'}[v.phase];
   let h=`<div class="bar"><span>房號 <b class="big">${v.room}</b></span><span>你：<b>${esc(v.name)}</b></span>`+
     (v.role?`<span>角色：<b>${ROLE_NAME[v.role]}</b> ${side(v)}</span>`:'')+`<span>${phaseName}</span>`+
-    (status?`<span class="warn">${status}</span>`:'')+btn(muted?'🔇':'🔊',{local:'mute'},'sm')+`<span class="timer" data-tm="main"></span></div>`;
+    (status?`<span class="warn">${status}</span>`:'')+btn(muted?'🔇':'🔊',{local:'mute'},'sm')+`<span class="timer" data-tm="main"></span>${nowHtml(v)}</div>`;
   if(sim)h+=simBar();
   if(v.note)h+=`<div class="note">⚠️ ${esc(v.note)}</div>`;
-  h+='<div class="grid">'+sceneHtml(v)+guideHtml(v)+({lobby:lobbyHtml,prep:prepHtml,inspect:inspectHtml,end:endHtml}[v.phase])(v)+'</div>';
-  setHtml(app,h);syncMini(v);tickTimers();askTick();
+  h+='<div class="grid">'+sceneHtml(v)+guideHtml(v)+({lobby:lobbyHtml,prep:prepHtml,inspect:inspectHtml,strike:strikeHtml,end:endHtml}[v.phase])(v)+'</div>';
+  setHtml(app,h);syncMini(v);tickTimers();askTick();tierTick();
+  document.querySelectorAll('#rules [data-mech]').forEach(n=>n.hidden=!mech(n.dataset.mech,v.cfg));   // 規則速查只留這局有套用的機制
 }
 // ───────── 小遊戲（mini/*.js）：3D 堆行李、金屬探測 ─────────
 const MINI={};
-const miniApi={send:m=>setTimeout(()=>send(m),0),play:(n,d)=>play(n,d),esc,face};
+const miniApi={send:m=>setTimeout(()=>send(m),0),play:(n,d)=>play(n,d),esc,face,sfx};
 function miniState(v){
   const st={};
   if(v.role==='traveler'&&(v.phase==='prep'||v.phase==='inspect')){
@@ -822,8 +1259,8 @@ function miniState(v){
   if(v.role==='backend'&&v.phase==='inspect'&&v.phr)st.screen={side:v.side,myScreen:v.myScreen,cooling:v.scrCd>0,max:SCR_MAX,words:WORDS,fields:v.phr.map(g=>({k:g.k,label:ID_LABEL[g.k],opts:g.opts})),looks:v.looks};
   if(st.screen)scrState(v,st.screen);   // 螢幕版本 A／B／C 多帶的欄位
   if(v.phase==='inspect'&&v.gesture)st.gesture=v.gesture;
-  if(v.role==='backend'&&v.phase==='inspect')st.xray={grid:GRID,bags:v.travs.map(t=>({label:t.id.name,cur:t.cur,items:t.xray||[]}))};
-  if(st.xray)st.xray.bags.forEach((b,i)=>{if(v.travs[i].cur)Object.assign(b,{canFlag:true,flag:v.flag?v.flag.item:null,flagOpened:!!(v.flag&&v.flag.opened)})});   // 指認抽查：只有櫃台前那位的行李箱可以指
+  if(v.role==='backend'&&v.phase==='inspect')st.xray={grid:GRID,bags:v.travs.map(t=>({label:t.id.name,cur:t.cur,items:t.xray||[],...(t.messy?{messy:true,blob:t.blob}:{})}))};
+  if(st.xray)st.xray.bags.forEach((b,i)=>{if(v.travs[i].cur&&!b.messy)Object.assign(b,{canFlag:true,flag:v.flag?v.flag.item:null,flagOpened:!!(v.flag&&v.flag.opened)})});   // 指認抽查：只有櫃台前那位的行李箱可以指
   return st;
 }
 function syncMini(v){
@@ -838,17 +1275,21 @@ function syncMini(v){
     }catch(e){console.error(e)}
   }
 }
+const pressNow=()=>{const p=V&&V.press;return p?Math.min(p.max,p.v+p.rate*(performance.now()-vAt)/1000):0};
 function tickTimers(){
   if(!V)return;const el=performance.now()-vAt;
   document.querySelectorAll('[data-tm]').forEach(n=>{
     const base=n.dataset.tm==='main'?V.remain:V[n.dataset.tm];
     n.textContent=base==null?'':n.dataset.tm==='main'?'⏱ '+fmt(Math.max(0,base-el)):Math.ceil(Math.max(0,base-el)/1000);
   });
-  if(V.phase==='inspect'&&V.remain!=null){const sec=Math.ceil((V.remain-el)/1000);if(sec>0&&sec<=10&&sec!==tickTimers.last){tickTimers.last=sec;play('tick')}}
+  const hz=document.getElementById('hurry'),sec=V.phase==='inspect'&&V.remain!=null?Math.ceil((V.remain-el)/1000):0,hurry=sec>0&&sec<=10;
+  hz.classList.toggle('on',hurry);
+  if(hurry&&sec!==tickTimers.last){tickTimers.last=sec;sfx.heart();if(V.role==='customs')sfx.buzz(40)}
+  if(V.press){const p=pressNow();document.querySelectorAll('[data-press]').forEach(n=>n.style.width=p+'%');document.querySelectorAll('[data-pressn]').forEach(n=>n.textContent=Math.floor(p))}
 }
 setInterval(tickTimers,250);
 setInterval(()=>{if(V&&MINI.metal&&V.phase==='inspect')syncMini(V)},500);   // 讓海關工具箱的倒數持續更新
-setInterval(()=>{if(V&&MINI.screen&&V.phase==='inspect'&&V.ask)syncMini(V)},500);   // 讓後台面板的點題倒數持續更新（時間到要換成「等下一題」）
+setInterval(()=>{if(V&&MINI.screen&&V.phase==='inspect'&&(V.ask||V.tier))syncMini(V)},500);   // 讓後台面板的點題倒數、線索解鎖倒數持續更新（時間到要換成「等下一題」）
 // 點題倒數：主機只在畫面有變時才送整份，所以收到的那一刻記下截止時間，之後在本機自己算
 const askRef={o:null,end:0};
 function askLeft(v){
@@ -862,6 +1303,44 @@ setInterval(askTick,250);
 function scrState(v,s){
   if(scrFeat(v.cfg)){s.fields=v.phr.map(g=>({k:g.k,label:ID_LABEL[g.k],truth:g.truth,memo:g.memo}));s.groups=SCR_G;delete s.words}
   if(v.ask)s.ask=v.ask.k?{k:v.ask.k,label:ID_LABEL[v.ask.k],ms:askLeft(v),total:v.ask.total,n:v.ask.n,of:v.ask.of,sent:!!v.askSent}:null;
+  // 線索三層：每欄附上三層選項；特徵詞版第三層＝詞庫裡標 tier:3 的那幾組（mini/words.js）
+  if(v.tier&&v.tierOpts){
+    const f=scrFeat(v.cfg),t=v.tier;
+    s.fields=s.fields.map(x=>({...x,tiers:[{n:1,opts:v.tierOpts[x.k][1]},{n:2,opts:v.tierOpts[x.k][2]},f?{n:3,note:'用下面標 ③ 的特徵詞繞著講（不能直接送答案）'}:{n:3,opts:x.opts}]}));
+    s.tier={mode:t.m,lvl:t.lvl,byQ:t.byQ,see:t.see,peeks:t.peeks,cdSec:TIER_CD.slice(1),
+      next:t.next?{n:t.next.n,ms:tierLeft(v,'next')}:null,cd:t.m==='B'&&v.scrCd>0?{n:v.scrCdN||1,ms:tierLeft(v,'cd')}:null};
+  }
+}
+// 線索解鎖的倒數（下一層、B 版冷卻）：跟點題一樣，收到畫面那一刻記下時間，之後在本機自己算
+const tierRef={v:null,at:0};
+function tierLeft(v,w){
+  if(!v)return 0;if(tierRef.v!==v){tierRef.v=v;tierRef.at=vAt}
+  const base=w==='cd'?v.scrCd||0:v.tier&&v.tier.next?v.tier.next.left:0;
+  return Math.max(0,base-(performance.now()-tierRef.at));
+}
+function tierTick(){if(V&&V.tier)document.querySelectorAll('[data-tiercd]').forEach(n=>{n.textContent=Math.ceil(tierLeft(V,'next')/1000)})}
+setInterval(tierTick,250);
+// 置頂那一行用的：現在開到第幾層、下一層怎麼開（簡短版）
+function tierNow(v){
+  const t=v.tier;if(!t)return '';
+  if(t.m==='A'&&!t.byQ)return t.next?`開到第${TIER_CN[t.lvl]}層，第${TIER_CN[t.next.n]}層 <b data-tiercd></b> 秒後解鎖`:'線索三層全開';
+  if(t.m==='A')return `第 ${Math.max(1,(v.ask&&v.ask.n)||1)} 題開到第${TIER_CN[t.lvl]}層${t.lvl<3?`，下一題開第${TIER_CN[t.lvl+1]}層`:''}`;
+  if(t.m==='B')return v.role==='backend'&&v.scrCd>0?`冷卻中（剛送了第${TIER_CN[v.scrCdN||1]}層，冷卻 ${TIER_CD[v.scrCdN||1]} 秒）`:'三層隨時可送，越細冷卻越久';
+  if(t.see)return t.see<3?`${v.role==='traveler'?'':'旅客'}再抬頭 ${PEEK_TIER[t.see-1]-t.peeks} 次就能看到第${TIER_CN[t.see+1]}層`:`${v.role==='traveler'?'你':'旅客'}抬頭已經看得到第三層`;
+  return '';
+}
+// 線索解鎖卡：所有人都看得到現在開到第幾層
+function tierLine(v){
+  const t=v.tier,bar=n=>[1,2,3].map(i=>i<=n?`<b class="good">${TIER_O[i]}</b>`:`<span class="dim">${TIER_O[i]}🔒</span>`).join(' ');
+  if(t.m==='A')return t.byQ?`${bar(t.lvl)}　${v.ask&&v.ask.n?`第 ${v.ask.n} 題：後台可以送到第${TIER_CN[t.lvl]}層`:'還沒點題：第 1 題只能送第一層'}${t.lvl<3?`（第 ${t.lvl+1} 題開第${TIER_CN[t.lvl+1]}層）`:''}`
+    :`${bar(t.lvl)}　後台可以送到第${TIER_CN[t.lvl]}層${t.next?`，第${TIER_CN[t.next.n]}層 <b class="warn" data-tiercd></b> 秒後解鎖`:'，三層全開'}`;
+  if(t.m==='B')return `${bar(3)}　三層隨時都能送${v.role==='backend'&&v.scrCd>0?`，<b class="warn">你還在冷卻</b>（剛送了第${TIER_CN[v.scrCdN||1]}層）`:''}`;
+  if(t.see)return `${bar(t.see)}　${v.role==='traveler'?'你':'櫃台前的旅客'}抬頭看得到第${TIER_CN[t.see]}層（這位已抬頭 ${t.peeks} 次）${t.see<3?`，再抬頭 ${PEEK_TIER[t.see-1]-t.peeks} 次就能看到第${TIER_CN[t.see+1]}層`:''}`;
+  return '後台三層都能送，但櫃台前的旅客要抬頭越多次才看得越細；他開到第幾層只有他和後台知道';
+}
+function tierHtml(v){
+  if(!v.tier)return '';
+  return `<div class="card wide"><h2>🔓 線索解鎖：${TIER_NAME[v.tier.m]}</h2><p style="margin:0">${tierLine(v)}</p><p class="dim" style="margin:4px 0 0">${tierRule(v.cfg)}</p></div>`;
 }
 
 function homeHtml(){
@@ -874,6 +1353,12 @@ function homeHtml(){
   <div class="card"><h2>加入房間</h2><div class="row"><input id="rc" data-keep="1" maxlength="4" size="6" placeholder="房號" value="${esc(q)}" style="text-transform:uppercase">${btn('加入',{local:'join'},'go')}</div></div></div>`;
 }
 
+// 大廳設定卡：這局套用的機制（房主可以切換，其他人看得到狀態）
+function mechHtml(v){
+  return `<h3>🧩 這局套用的機制</h3>`+MECHS.map(d=>{const on=mech(d.k,v.cfg);
+    return `<div class="row" style="margin:2px 0;flex-wrap:nowrap;align-items:flex-start">${v.isHost?btn(`${on?'☑':'☐'} ${d.name}`,{a:'cfg',k:'mech',mk:d.k,on:!on},'sm mechb'+(on?' go':'')):`<span class="chip${on?' pass':''}" style="flex:none">${on?'✔':'✖'} ${d.name}</span>`}<span class="dim" style="font-size:13px">${on?'':'（這局不用）'}${d.desc}</span></div>`}).join('')+
+    '<p class="dim" style="margin:4px 0 0;font-size:13px">⭐ 表現分一律開著：不影響勝負，結算時排名、頒稱號。</p>';
+}
 function lobbyHtml(v){
   const n=v.players.length,split=n<3?'至少要 3 人':`${n} 人：海關 1／後台 ${n>=4?2:1}／旅客 ${n-1-(n>=4?2:1)}`;
   const num=(k,label,min,max)=>v.isHost?`<label>${label} <input id="cfg_${k}" data-keep="1" type="number" min="${min}" max="${max}" value="${v.cfg[k]}" data-c='{"a":"cfg","k":"${k}"}' style="width:80px"></label>`:`<span>${label} <b>${v.cfg[k]}</b></span>`;
@@ -883,8 +1368,11 @@ function lobbyHtml(v){
     ${v.isHost?`<label>海關 <select id="cfg_customs" data-c='{"a":"cfg","k":"customs"}'><option value="">隨機</option>${v.players.map(p=>`<option value="${p.pid}"${v.cfg.customs===p.pid?' selected':''}>${esc(p.name)}</option>`).join('')}</select></label>`
       :`<span>海關 <b>${esc((v.players.find(p=>p.pid===v.cfg.customs)||{name:'隨機'}).name)}</b></span>`}
     ${num('prep','準備秒數',10,600)}${num('turn','每位旅客秒數',30,900)}${num('ap','行動點數',0,30)}</div>
-    <div class="row" style="margin-top:6px">${v.isHost?`<label>螢幕版本 <select id="cfg_scr" data-c='{"a":"cfg","k":"scr"}'>${SCR_VARS.map(x=>`<option value="${x}"${scrVar(v.cfg)===x?' selected':''}>${SCR_NAME[x]}</option>`).join('')}</select></label>`:`<span>螢幕版本 <b>${SCR_NAME[scrVar(v.cfg)]}</b></span>`}</div>
-    <p class="dim" style="margin:4px 0 0">📺 ${SCR_RULE[scrVar(v.cfg)]}</p>
+    <div class="row" style="margin-top:6px">${v.isHost?`<label>螢幕版本 <select id="cfg_scr" data-c='{"a":"cfg","k":"scr"}'>${SCR_VARS.map(x=>`<option value="${x}"${scrVar(v.cfg)===x?' selected':''}>${SCR_NAME[x]}</option>`).join('')}</select></label>`:`<span>螢幕版本 <b>${SCR_NAME[scrVar(v.cfg)]}</b></span>`}
+      ${v.isHost?`<label>線索解鎖 <select id="cfg_tier" data-c='{"a":"cfg","k":"tier"}'>${TIER_MODES.map(x=>`<option value="${x}"${tierMode(v.cfg)===x?' selected':''}>${TIER_NAME[x]}</option>`).join('')}</select></label>`:`<span>線索解鎖 <b>${TIER_NAME[tierMode(v.cfg)]}</b></span>`}</div>
+    <p class="dim" style="margin:4px 0 0">📺 ${(tierMode(v.cfg)==='N'?SCR_RULE_N:SCR_RULE)[scrVar(v.cfg)]}</p>
+    <p class="dim" style="margin:4px 0 0">🔓 ${tierRule(v.cfg)}</p>
+    ${mechHtml(v)}
     <p>${split}</p>${v.isHost?btn('開始遊戲',{a:'start'},'go',n<3):'<p class="dim">等房主開始…</p>'}</div>`;
 }
 
@@ -924,8 +1412,8 @@ function prepHtml(v){
       <p>護照姓名：<b class="big">${esc(v.passport.name)}</b></p>${lk(v.passport.looks,88,v.passport.deco)}`;
     if(v.bad)h+=`<div class="alert" style="font-weight:400">🚨 你在通緝名單上：本名 <b>${esc(v.real.name)}</b>，照片就是你現在的長相，<b>改不了</b>。護照上的名字是假的（差一個字）。海關只要仔細比對就認得出你，想辦法讓他沒時間看、或讓他懷疑別人。</div>`;
     h+=travelerIdHtml(v)+(v.bad?`<h3>🎯 專屬任務</h3><div class="memo">${esc(v.task)}</div>`:sysTaskHtml(v))+`</div>`;
-    h+=decoCard(v);
-    h+=`<div class="card wide"><h2>🎒 堆行李 — 疊進行李箱或藏到身上</h2><div class="note" style="margin:0 0 8px">🧰 海關這回合帶的招：<b>${v.customsTools.map(x=>TOOL_NAME[x]).join('、')||'還沒選'}</b>${v.customsSecret?'，另外還有 <b>1 招保密</b>':''}。<span class="dim">（海關還在選，會變動）</span></div><p class="dim">行李箱可以往上疊三層；不管壓在第幾層，後台的 X 光都看得到形狀。藏身上的 X 光照不到，但金屬會被探測棒掃到，海關也可以花點數叫你掏出來。超過 3 格的東西藏不了身上。</p><div data-mini="pack"></div></div>`;
+    h+=(mech('declare',v.cfg)?declCard(v):'')+decoCard(v);
+    h+=`<div class="card wide"><h2>🎒 堆行李 — 疊進行李箱或藏到身上</h2><div class="note" style="margin:0 0 8px">🧰 海關這回合帶的招：<b>${v.customsTools.map(x=>TOOL_NAME[x]).join('、')||'還沒選'}</b>${v.customsSecret?'，另外還有 <b>1 招保密</b>':''}。<span class="dim">（海關還在選，會變動）</span></div><p class="dim">行李箱可以往上疊三層；不管壓在第幾層，後台的 X 光都看得到形狀。藏身上的 X 光照不到，但金屬會被探測棒掃到，海關也可以花點數叫你掏出來。超過 3 格的東西藏不了身上。</p>${loadHtml(v)}<div data-mini="pack"></div></div>`;
   }
   return h+logCard(v);
 }
@@ -951,31 +1439,130 @@ function askHtml(v){
   return h+'</div>';
 }
 // 常見答案表（A、C 版）：螢幕上只有特徵詞，所有人都要看得到每一欄可能的答案才拼得出來
+// 線索對照表：每一欄的三層樹＋第一層在回憶錄裡的說法，所有人都看得到（螢幕上的分類詞要查這張才看得懂）
+const tierMemo=(k,a,subs)=>k==='job'?`算是「${a}」`:[...new Set(subs.flatMap(([b,lf])=>typeof lf[0]==='number'?[scrMemo(k,lf[0])]:lf.map(x=>scrMemo(k,x))))].join('／');
 const POOL_ROWS=[['age','22 到 68 歲'],['job',JOB.join('、')],['from',FROM.join('、')],['purpose',PURPOSE.join('、')],['days','2 到 14 天'],['stay',STAY.join('、')],['companion',COMP.join('、')],['pet',PET.join('、')]];
 function poolHtml(v){
-  if(!scrFeat(v.cfg))return '';
-  return `<div class="card wide"><h2>📋 常見答案表（所有人都看得到） ${btn(ui.pool?'收起':'展開',{local:'pool'},'sm')}</h2>`+
-    (ui.pool?`<table>${POOL_ROWS.map(r=>`<tr><th style="white-space:nowrap">${ID_LABEL[r[0]]}</th><td>${esc(r[1])}</td></tr>`).join('')}</table>`:
-      '<p class="dim" style="margin:0">這一局螢幕上不會直接出現答案，只有特徵詞。展開可以看每一欄所有可能的答案，用來對照螢幕上的提示。</p>')+'</div>';
+  if(tierMode(v.cfg)==='N'){   // 不分層：原本的常見答案表（只有特徵詞版才有）
+    if(!scrFeat(v.cfg))return '';
+    return `<div class="card wide"><h2>📋 常見答案表（所有人都看得到） ${btn(ui.pool?'收起':'展開',{local:'pool'},'sm')}</h2>`+
+      (ui.pool?`<table>${POOL_ROWS.map(r=>`<tr><th style="white-space:nowrap">${ID_LABEL[r[0]]}</th><td>${esc(r[1])}</td></tr>`).join('')}</table>`:
+        '<p class="dim" style="margin:0">這一局螢幕上不會直接出現答案，只有特徵詞。展開可以看每一欄所有可能的答案，用來對照螢幕上的提示。</p>')+'</div>';
+  }
+  if(!v.tier)return '';
+  const leaf=(k,lf)=>typeof lf[0]==='number'?`${lf[0]}–${lf[1]} ${scrUnit(k)}`:lf.join('、');
+  return `<div class="card wide"><h2>📋 線索對照表（所有人都看得到） ${btn(ui.pool?'收起':'展開',{local:'pool'},'sm')}</h2>`+
+    (ui.pool?`<table>${CLEAR_KEYS.map(k=>`<tr><th style="white-space:nowrap;vertical-align:top">${ID_LABEL[k]}</th><td>${TIER_TREE[k].map(([a,subs])=>`<div style="margin:2px 0">① <b>${esc(a)}</b> <span class="dim">（回憶錄：${esc(tierMemo(k,a,subs))}）</span>：${subs.map(([b,lf])=>`② ${esc(b)}〔③ ${esc(leaf(k,lf))}〕`).join('　')}</div>`).join('')}</td></tr>`).join('')}</table>`:
+      `<p class="dim" style="margin:0">螢幕上的線索分三層：①第一層跟好旅客回憶錄一樣模糊、②第二層細一點、③第三層${scrFeat(v.cfg)?'是特徵詞（這一局不會直接出現答案）':'是精確答案'}。展開可以看每一欄的分類和所有可能的答案。</p>`)+'</div>';
 }
 // 各版本在「你現在要做的事」多補的一句
 function scrGuide(v){
-  const o=[],f=scrFeat(v.cfg),a=scrAsk(v.cfg);
+  const o=[],f=scrFeat(v.cfg),a=scrAsk(v.cfg),tm=tierMode(v.cfg);
+  if(tm==='N'){   // 不分層：原本的指引
+    if(v.role==='customs'){if(a)o.push(`這一局要「點題」：每位旅客只能正式盤問 ${ASK_MAX} 欄，點下去後兩位後台各只能在螢幕上送一句`)}
+    else if(v.role==='backend'){
+      if(f)o.push('這一局螢幕的詞庫<b>沒有答案</b>：答案只能看，要用特徵詞繞著講（上一條的例句這一局送不出去）');
+      if(a)o.push('這一局要等海關點題才能送螢幕：倒數中、一題一句，可以先把句子組好');
+    }else{
+      if(f)o.push('這一局螢幕上只有特徵詞：展開「常見答案表」，配合回憶錄自己拼出答案');
+      if(a)o.push('這一局海關會點題：螢幕每題開始時清空，後台各送一句後再抬頭看');
+    }
+    return o;
+  }
   if(v.role==='customs'){
     if(a)o.push(`這一局要「點題」：每位旅客只能正式盤問 ${ASK_MAX} 欄，點下去後兩位後台各只能在螢幕上送一句`);
+    o.push(`螢幕線索分三層（${TIER_NAME[tm]}）：回頭看到的第一層很模糊、第三層最精確。${tm==='A'&&a?'第 n 題開到第 n 層，最想問清楚的欄位留到第 3 題':tm==='A'?`第二層 ${TIER_AT[1]} 秒、第三層 ${TIER_AT[2]} 秒才開`:tm==='B'?'後台送越細的詞冷卻越久':'旅客抬頭越多次看得越細，你看不到他開到第幾層——盯著他的眼睛，一直抬頭的人值得懷疑'}`);
   }else if(v.role==='backend'){
-    if(f)o.push('這一局螢幕的詞庫<b>沒有答案</b>：答案只能看，要用特徵詞繞著講（上一條的例句這一局送不出去）');
+    if(f)o.push('這一局螢幕的詞庫<b>沒有答案</b>：答案只能看，第一、二層用分類詞，第三層用特徵詞繞著講（上一條的例句這一局送不出去）');
     if(a)o.push('這一局要等海關點題才能送螢幕：倒數中、一題一句，可以先把句子組好');
+    o.push(tm==='A'?(a?'線索分三層，以題號解鎖：第 1 題只能送第一層、第 2 題開到第二層、第 3 題開到第三層（鎖住的詞看得到但按不了）':`線索分三層，隨時間解鎖：旅客上櫃台時只能送第一層，${TIER_AT[1]} 秒開第二層、${TIER_AT[2]} 秒開第三層（鎖住的詞看得到但按不了）`)
+      :tm==='B'?`線索三層隨時都能送，但句子裡最細的詞決定冷卻：第一層 ${TIER_CD[1]} 秒、第二層 ${TIER_CD[2]} 秒、第三層 ${TIER_CD[3]} 秒${a?'（點題版冷卻跨題繼續算）':''}`
+      :'線索三層都能送，但旅客要多抬頭才看得到細的：他看不到的詞會變成 🔒。面板上寫著他現在看得到第幾層，照這個決定送哪一層');
+    o.push(v.bad?'第一層跟好旅客的回憶錄一樣模糊，在第一層說謊很容易被拆穿；謊話藏在第二、三層比較安全':'第一層旅客拿回憶錄就能驗證，先用第一層說真話讓旅客相信你，再給細的');
   }else{
-    if(f)o.push('這一局螢幕上只有特徵詞：展開「常見答案表」，配合回憶錄自己拼出答案');
+    o.push('螢幕上的線索分三層：第一層跟你的回憶錄一樣模糊（拿來驗證哪個螢幕說真話），第二、三層比較細。看不懂的詞展開「線索對照表」查');
+    if(f)o.push('這一局螢幕上沒有答案：第三層只有特徵詞，配合回憶錄和「線索對照表」自己拼出答案');
     if(a)o.push('這一局海關會點題：螢幕每題開始時清空，後台各送一句後再抬頭看');
+    if(tm==='C')o.push(`這一局你抬頭越多次看得越細：第 1 次只看得到第一層、第 ${PEEK_TIER[0]}–${PEEK_TIER[1]-1} 次第二層、第 ${PEEK_TIER[1]} 次起第三層，看不到的顯示 🔒。但抬頭越多次越容易被海關盯到`);
   }
   return o;
 }
 
+// 申報單（旅客準備時勾）
+function declCard(v){
+  return `<div class="card wide"><h2 class="pr-head">${prop('form')}📋 申報單 — 勾你要申報的東西</h2><p class="dim" style="margin:0 0 6px">到櫃台時海關會先看這張單。海關搜查時查到<b>沒申報</b>的東西，他可以拿回 ${DECL_REFUND} 點；他查了卻沒查到，要賠 ${DECL_FINE} 點。危險物品也可以申報，但要準備好理由。準備時間結束就不能改了。</p>
+    <div>${v.items.map(it=>btn(`${it.dec?'☑':'☐'} ${ico(it.n,it.c)}${esc(it.n)}${it.c?' ⚠️':''}`,{a:'declare',i:it.i,on:!it.dec},it.dec?'go':'')).join('')}</div>
+    <p class="dim" style="margin:6px 0 0">已申報 ${v.items.filter(i=>i.dec).length}／${v.items.length} 件</p></div>`;
+}
+// 海關看到的申報單與伴手禮
+function declHtml(v){
+  if(!v.decl)return '';
+  const st=v.found?'<b class="good">這位已經查到沒申報的東西了</b>':v.searched?'<span class="warn">已經搜過了，還沒查到沒申報的東西：下判時要賠 '+DECL_FINE+' 點</span>':'還沒搜查';
+  return `<h3 class="pr-head">${prop('form',36)}📋 申報單</h3><div class="memo">${v.decl.length?v.decl.map(n=>ico(n)+esc(n)).join('　'):'（什麼都沒申報）'}</div>
+    <p class="dim" style="margin:4px 0 0">開行李、取出、透視、開後台指的那件，只要查到<b>沒申報</b>的東西就拿回 ${DECL_REFUND} 點；查了卻什麼都沒抓到，下判時賠 ${DECL_FINE} 點。${st}</p>`;
+}
+function bribeHtml(v){
+  const b=v.bribe;if(!b)return '';
+  if(b.st==='offer')return `<div class="note pr-head" style="align-items:flex-start">${prop('gift',56)}<div>🎁 旅客偷偷遞上伴手禮：${ico(b.n)}<b>${esc(b.n)}</b>。收下就<b>必須放行</b>、不能再搜（表現分 +${PTS.bribe}，不加行動點數）；收的萬一是通緝犯的，你直接輸。收之前可以先比對通緝名單。<div style="margin-top:4px">${btn('🎁 收下並放行',{a:'bribeAns',ok:true},'go')}${btn('拒收',{a:'bribeAns',ok:false},'no')}</div></div></div>`;
+  return b.st==='no'?'<p class="dim">🎁 你拒收了這位旅客的伴手禮。</p>':'';
+}
+// 旅客在櫃台前：遞伴手禮（賄賂）
+function bribeOffer(v){
+  if(!v.at||v.myVerdict)return '';
+  const b=v.bribe;
+  if(b)return `<h3>🎁 伴手禮</h3><p>${b.st==='offer'?`你遞出了「${esc(b.n)}」，等海關決定收不收`:b.st==='no'?`海關拒收了「${esc(b.n)}」，這位旅客只能送一次`:`海關收下了「${esc(b.n)}」`}</p>`;
+  return `<h3 class="pr-head">${prop('gift',36)}🎁 遞伴手禮（賄賂，只能一次）</h3><p class="dim" style="margin:0 0 4px">送出一件行李。海關收下就一定要放行；收賄紀錄結算時公開。送出去的東西就沒了。</p><div>${v.items.filter(i=>!(i.loc==='body'&&v.passport&&false)).map(i=>btn(ico(i.n,i.c)+esc(i.n),{a:'bribe',i:i.i},'sm')).join('')}</div>`;
+}
+// 公開投票：海關下判前大家各投一票，誰投什麼全部公開、結算留紀錄
+function voteHtml(v){
+  const vs=v.votes;if(!vs)return '';
+  const cur=(v.queue.find(q=>q.cur)||{}).pass||'',n=k=>vs.filter(x=>x.v===k).length;
+  return `<div class="card wide"><h2 class="pr-head">${prop('ballot',44)}🗳️ 公開投票：${esc(cur)} 該放行還是扣留？</h2>
+    ${vs.length?`<div>${vs.map(x=>`<span class="chip ${x.v}">${x.kind} ${esc(x.name)}：${x.v==='pass'?'✅ 放行':'🚨 扣留'}</span>`).join('')}</div>`:'<p class="dim" style="margin:0">還沒有人投票</p>'}
+    <p class="dim" style="margin:4px 0">放行 ${n('pass')} 票／扣留 ${n('arrest')} 票。海關下判前都可以改票；每一票都會留紀錄，結算時公開。${v.role==='customs'?'票只是參考，判決由你決定。':''}</p>
+    ${v.canVote?`<div>${btn((v.myVote==='pass'?'✔ ':'')+'✅ 投放行',{a:'vote',v:'pass'},v.myVote==='pass'?'go':'')}${btn((v.myVote==='arrest'?'✔ ':'')+'🚨 投扣留',{a:'vote',v:'arrest'},v.myVote==='arrest'?'no':'')}</div>`:''}</div>`;
+}
+// 最後一擊：被扣留的通緝犯押注哪個螢幕是好後台的
+function strikeCard(v){
+  const s=v.strike;if(!s||v.role!=='traveler')return '';
+  if(s.st==='open')return `<div class="card wide" style="border-color:var(--bad)"><h2 class="bad pr-head">${prop('strike',56)}💥 最後一擊</h2><p>你被扣留了。你可以押注：<b>兩個螢幕，哪一個是好後台的？</b></p>
+    <ul><li>猜中：好後台這局不算贏</li><li><b>猜錯：你自己和壞後台都輸</b>（就算你已經完成任務也一樣）</li><li>沒把握可以放棄，什麼都不會發生</li></ul>
+    <div>${btn('左螢幕是好後台',{a:'strike',side:0},'no')}${btn('右螢幕是好後台',{a:'strike',side:1},'no')}${btn('放棄',{a:'strike',side:null})}</div></div>`;
+  return s.st==='done'?`<div class="card wide"><h2>💥 最後一擊</h2><p>你押了「${s.pick?'右':'左'}螢幕是好後台」，結算時揭曉。</p></div>`:'';
+}
+function strikeHtml(v){
+  return strikeCard(v)+`<div class="card wide"><h2>💥 等待最後一擊</h2><p>被扣留的通緝犯（${(v.strikeWait||[]).map(esc).join('、')}）正在決定要不要押注，最多 ${STRIKE_SEC} 秒。</p></div>`+logCard(v);
+}
+
+// 海關：超重的箱子可以免費丟掉一件（只看得到形狀描述；開過箱才有名稱）
+function overHtml(v){
+  const o=v.over;if(!o)return '';
+  if(o.dump)return `<p class="dim">⚖️ 這個箱子超重，你已經丟掉了「${o.dump.m?'金屬':'非金屬'}・${esc(o.dump.x)}」${o.dump.n?`（${esc(o.dump.n)}）`:''}。</p>`;
+  return `<div class="note" style="margin:8px 0"><b>⚖️ 行李箱超重</b>（用掉 ${o.load}／${GRID.w*GRID.h*GRID.d} 格，${o.max} 格以上算超重）：可以<b>免費丟掉一件</b>，這位旅客只能丟一次。${o.items.some(i=>i.n)?'':'你只看得到形狀描述，'}丟掉的東西就不見了。<div style="margin-top:4px">${o.items.map(i=>btn(`🗑️ ${i.m?'金屬':'非金屬'}・${esc(i.x)}${i.n?`（${esc(i.n)}）`:''}`,{a:'dump',item:i.k},'sm')).join('')}</div></div>`;
+}
+// 後台：輸送帶紀錄（兩位後台都看得到，海關看不到）
+function beltHtml(v){
+  if(!v.belt)return '';   // 這局沒套用栽贓
+  const b=v.belt;
+  if(!b.length)return `<div class="card wide"><h2>🛄 輸送帶紀錄</h2><p class="dim" style="margin:0">目前沒有人的行李被動過。壞後台一局可以偷偷往一位旅客的行李箱塞一件違禁品，塞了這裡就會出現紀錄（兩位後台都看得到，海關看不到）。</p></div>`;
+  return `<div class="card wide" style="border-color:var(--bad);background:#2a1616"><h2 class="bad">🛄 輸送帶紀錄：有行李被動過！</h2>${b.map(x=>`<div class="alert" style="margin:4px 0">🧳 <b>${esc(x.name)}</b> 的行李箱被動過（第 ${x.turn+1} 位旅客在櫃台的時候）</div>`).join('')}
+    <p class="dim" style="margin:0">只知道是誰的箱子：不知道是哪一件、也不知道是誰動的。兩位後台都看得到這則紀錄，海關看不到——要不要講、怎麼講，在耳機裡各說各話。${v.bad?'':'輪到他時去 X 光找多出來的可疑形狀。'}</p></div>`;
+}
+// 壞後台：栽贓（一局一次）
+function plantHtml(v){
+  const p=v.plant;if(!p)return '';
+  if(p.used)return `<div class="card wide"><h2>😈 栽贓（已經用掉了）</h2><p style="margin:0">你把「<b>${esc(p.n)}</b>」塞進了 <b>${esc(p.to)}</b> 的行李箱。他自己的畫面看不到這件；海關開箱或抽查會開到它，而且它當然沒申報。他被海關扣留（不算超時亂判、那件沒被丟掉），你就拿「🎭 最佳栽贓」和表現分 +${PTS.plant}。</p></div>`;
+  const to=p.targets.find(x=>x.q===ui.plantTo);
+  return `<div class="card wide" style="border-color:var(--bad)"><h2 class="bad">😈 栽贓：你還可以用一次</h2><p class="dim" style="margin:0 0 6px">挑一位<b>還沒輪到櫃台的普通旅客</b>，把一件違禁品塞進他行李箱的空位（系統照疊行李的規則找最低的空位；塞不下就不算，可以換）。他自己完全不會知道。代價：兩位後台的「輸送帶紀錄」都會出現「他的行李被動過」。</p>
+    ${p.targets.length?`<div><span class="dim">① 塞給誰：</span>${p.targets.map(x=>btn(`${esc(x.name)}（${esc(x.player)}・箱子已用 ${x.load} 格）`,{local:'plantTo',q:x.q},'sm'+(x.q===ui.plantTo?' go':''))).join('')}</div>
+    <div style="margin-top:4px"><span class="dim">② 塞什麼${to?'':'（先選人）'}：</span>${p.opts.map(o=>btn(`${ico(o.n,true)}${esc(o.n)}（${o.cells} 格・X 光像「${esc(o.x)}」）`,{a:'plant',q:to?to.q:-1,k:o.k},'sm no',!to)).join('')}</div>`
+    :'<p class="warn" style="margin:0">現在沒有可以栽贓的對象：後面排隊的都不是普通旅客，或都已經判完了。</p>'}</div>`;
+}
+// 旅客：行李箱用掉幾格（超重提示）
+const loadHtml=v=>v.load==null?'':`<div class="${v.load>=v.overMax?'alert':'permit'}" style="font-weight:400;margin:0 0 6px">⚖️ 行李箱目前用掉 <b>${v.load}</b>／${GRID.w*GRID.h*GRID.d} 格空間（${v.overMax} 格以上＝<b>超重</b>）${v.load>=v.overMax?'：<b>已經超重了！</b>海關可以免費丟掉你一件，後台的 X 光會疊成一團看不清':'。每一格從箱底算到最上面那件東西，壓在底下的空隙也算'}</div>`;
 function inspectHtml(v){
-  let h=queueBar(v);
-  h+=askHtml(v)+poolHtml(v);
+  let h=queueBar(v)+pressHtml(v)+strikeCard(v)+voteHtml(v);
+  h+=askHtml(v)+tierHtml(v)+poolHtml(v);
   const pp=v.passport;
   if(v.role==='customs'){
     const b=v.blur?` style="filter:blur(${v.blur}px)"`:'';
@@ -983,22 +1570,24 @@ function inspectHtml(v){
     h+=`<div class="card"${b}><h2>🛂 櫃台前的旅客</h2><p>護照姓名：<b class="big">${esc(pp.name)}</b> <span class="dim">（玩家 ${esc(pp.player)}）</span></p>${lk(pp.looks,88,pp.deco)}
       <h3>行動點數：<b class="big warn">${v.ap}</b></h3>
       <div>${btn(v.opened?'🧳 再看一次行李箱':'🧳 開行李箱（−2）',{a:'open'},'',!v.opened&&v.ap<2)}${btn(ui.wanted?'📋 收起通緝名單':'📋 翻開通緝名單',{local:'wanted'})}${btn('👀 回頭偷看螢幕',{a:'look'},'',v.looking)}</div>
-      ${flagHtml(v)}
+      ${flagHtml(v)}${overHtml(v)}${declHtml(v)}${bribeHtml(v)}
       <h3>旅客的動作</h3><p class="dim" style="margin:0 0 4px">按住「盯著旅客的眼睛」才知道他有沒有偷看你背後的螢幕；你自己回頭的時候盯不到。</p><div data-mini="gesture"></div>
-      <h3>下判</h3><div>${btn('✅ 放行',{a:'verdict',v:'pass'},'go')}${btn('🚨 抓人',{a:'verdict',v:'arrest'},'no')}</div></div>
+      <h3>下判：把印章拖到護照上</h3><div class="stampdesk"><div class="pzone" id="pzone">${face(pp.looks,64,'#e9dcc0')}<div><b style="font-size:17px">${esc(pp.name)}</b><div style="font-size:12px">PASSPORT・護照（把印章拖到這裡）</div></div></div>
+        <div class="stamps"><div class="stk pass" data-stamp="pass">${prop('stamp',46)||'<span class="h"></span>'}放行</div><div class="stk arrest" data-stamp="arrest">${prop('stamp',46)||'<span class="h"></span>'}抓人</div></div></div></div>
       <div class="card"${b}><h2>🧰 海關工具箱</h2><div data-mini="metal"></div></div>
       <div class="card"${b}><h2>🗒️ 檢查結果（只有你看得到）</h2><div class="log">${v.clog.map(l=>`<div>${esc(l)}</div>`).join('')}</div>
       <h2 style="margin-top:12px">🎧 耳機（兩位後台，其中一個是內鬼）</h2>${chatLog(v)}</div>`;
     if(ui.wanted)h+=`<div class="card wide"${b}><h2>📋 通緝名單 ${btn('收起',{local:'wanted'},'sm')}</h2>${wantedTable(v.wanted)}</div>`;
   }else if(v.role==='backend'){
+    h+=beltHtml(v)+plantHtml(v);
     h+=`<div class="card">${v.lookAlert?'<div class="alert">👀 海關正在回頭看螢幕！</div>':''}<h2>🎧 對海關講話（旅客看不到）</h2>
       <form id="chatf" class="row"><input id="chat" data-keep="1" maxlength="200" placeholder="打字給海關…" style="flex:1" autocomplete="off"><button class="go">送出</button></form>${chatLog(v)}
       <div data-mini="screen" style="margin-top:12px"></div>
       <h2 style="margin-top:12px">🙋 櫃台前的旅客</h2><div data-mini="gesture"></div></div>
-      <div class="card"><h2>🖥️ 你是${v.bad?'<span class="bad">壞後台</span>':'<span class="good">好後台</span>'}・旅客資料與 X 光</h2>
+      <div class="card"><h2>🖥️ 你是${v.bad?'<span class="bad">壞後台</span>':'<span class="good">好後台</span>'}・旅客資料與 X 光</h2>${mech('declare',v.cfg)?'<p class="dim" style="margin:0 0 6px">每位旅客的申報單在資料卡最下面，跟 X 光對一對：有沒有東西沒申報？</p>':''}
       <p>櫃台護照：<b>${esc(pp.name)}</b></p>${lk(pp.looks,88,pp.deco)}
       <div class="hero thin" style="background-image:url(art/xray.jpg);background-position:center 45%;margin-top:10px"><div class="cap"><b style="font-size:18px">X 光機</b>只看得到形狀，藏身上的照不到</div></div>
-      ${v.travs.map(t=>`<div class="card" style="margin-top:8px${t.cur?';border-color:var(--warn)':''}"><b>${esc(t.id.name)}</b> <span class="dim">（玩家 ${esc(t.player)}）${t.cur?'← 櫃台':t.verdict?'（已判）':''}</span>${sideTag(t)}${idList(t.id)}
+      ${v.travs.map(t=>`<div class="card" style="margin-top:8px${t.cur?';border-color:var(--warn)':''}"><b>${esc(t.id.name)}</b> <span class="dim">（玩家 ${esc(t.player)}）${t.cur?'← 櫃台':t.verdict?'（已判）':''}</span>${sideTag(t)}${idList(t.id)}${t.decl?`<div class="dim" style="font-size:13px">📋 申報：${t.decl.length?t.decl.map(esc).join('、'):'（沒申報）'}</div>`:''}
         </div>`).join('')}
       <h3>X 光</h3><div data-mini="xray"></div></div>`;
   }else{
@@ -1009,22 +1598,40 @@ function inspectHtml(v){
       <div>${btn(v.taskDone?'✔ 已標記完成（按一下取消）':'我完成任務了',{a:'task'},v.taskDone?'go':'')}</div>`:sysTaskHtml(v)}</div>
       <div class="card">`;
     h+=`<h2>${v.at?'🙋 你在櫃台前':'🙋 櫃台前的旅客'}</h2>${v.at?'<p class="dim" style="margin:0 0 6px">海關背後有螢幕（各由一位後台控制，其中一位是內鬼）。要<b>按住「抬頭看螢幕」</b>才看得到，一次最多 4 秒；海關如果正盯著你的眼睛，就會發現你在看。</p>':''}<div data-mini="gesture"></div>`;
-    h+=`<h2 style="margin-top:12px">🎒 你的行李</h2><div data-mini="pack"></div></div>`;
+    h+=(mech('bribe',v.cfg)?bribeOffer(v):'')+`<h2 style="margin-top:12px">🎒 你的行李</h2>${(v.dumped||[]).length?`<div class="note" style="margin:0 0 6px">🗑️ 海關說你的行李箱超重，把「${v.dumped.map(esc).join('、')}」丟掉了</div>`:''}${loadHtml(v)}<div data-mini="pack"></div></div>`;
   }
   return h+logCard(v);
 }
 
+// 結算：表現分排行（不影響勝負）
+function scoreHtml(e){
+  const s=e.score;if(!s)return '';
+  const role=r=>r.role==='customs'?'海關':(r.bad?'😈 ':'😇 ')+ROLE_NAME[r.role];
+  return `<div class="card wide"><h2>⭐ 表現分排行（不影響勝負）</h2><table><tr><th>名次</th><th>玩家</th><th>角色</th><th>表現分</th><th>稱號</th><th>加分明細</th></tr>
+    ${s.map((r,i)=>`<tr class="flip" style="animation-delay:${i*.2}s"><td class="big">${r.rank}</td><td><b>${esc(r.name)}</b></td><td>${role(r)}</td><td class="big warn">${r.total}</td><td>${r.titles.map(t=>`<span class="chip cur" title="${esc(t.why)}">${t.n}</span>`).join('')||'<span class="dim">—</span>'}</td>
+      <td>${r.list.length?`<ul style="margin:0;padding-left:16px">${r.list.map(x=>`<li>+${x.p}　${esc(x.why)}</li>`).join('')}</ul>`:'<span class="dim">沒有加分</span>'}</td></tr>`).join('')}</table>
+    <details style="margin-top:6px"><summary class="dim">稱號怎麼拿（系統判定）</summary><ul>${(e.titles||[]).map(t=>`<li>${t.n}：${esc(t.why)}</li>`).join('')}</ul></details></div>`;
+}
+// 結算：栽贓公開
+function plantEndHtml(e){
+  const p=e.plant;
+  if(!p)return e.canPlant?'<div class="card wide"><h2>🧳 栽贓</h2><p style="margin:0" class="dim">壞後台這局沒有栽贓。</p></div>':'';
+  const res=p.dumped?'海關嫌箱子超重，剛好把它丟掉了':!p.verdict?'還沒判到他':p.hit?'<b class="bad">他被海關扣留了 → 栽贓成功</b>':p.verdict==='arrest'?'超時被系統亂判成扣留（不算栽贓成功）':'<b class="good">他還是被放行了 → 栽贓失敗</b>';
+  return `<div class="card wide" style="border-color:var(--bad)"><h2 class="bad">🧳 栽贓公開</h2><p style="margin:0">壞後台 <b>${esc(p.by)}</b> 在第 ${p.turn+1} 位旅客過關時，把「<b>${esc(p.n)}</b>」塞進了 <b>${esc(p.to)}</b>（玩家 ${esc(p.player)}）的行李箱。${p.found?esc(p.found)+'。':p.dumped?'':'海關沒有搜到它。'}結果：${res}</p></div>`;
+}
 function endHtml(v){
   const e=v.end;
   return `<div class="card wide"><h2>🏁 結算</h2><table><tr><th>玩家</th><th>角色</th><th>陣營</th><th>結果</th><th>原因</th></tr>
-    ${e.rows.map((r,i)=>`<tr><td>${ava(i)}<b>${esc(r.name)}</b></td><td>${ROLE_NAME[r.role]}</td><td>${r.role==='customs'?'—':r.bad?'<span class="bad">壞</span>':'<span class="good">好</span>'}</td><td class="big ${r.win?'good':'bad'}">${r.win?'🏆 勝':'✖ 敗'}</td><td>${esc(r.why)}</td></tr>`).join('')}</table>
+    ${e.rows.map((r,i)=>`<tr class="flip" style="animation-delay:${i*.25}s"><td>${ava(i)}<b>${esc(r.name)}</b></td><td>${ROLE_NAME[r.role]}</td><td>${r.role==='customs'?'—':r.bad?'<span class="bad">壞</span>':'<span class="good">好</span>'}</td><td class="big ${r.win?'good':'bad'}">${r.win?'🏆 勝':'✖ 敗'}</td><td>${esc(r.why)}</td></tr>`).join('')}</table>
     ${sim?'<p class="dim">想再玩就按上面的「🔄 重新發一局」。</p>':v.isHost?btn('再來一局（回大廳）',{a:'again'},'go'):'<p class="dim">等房主開下一局…</p>'}</div>
-  ${e.travs.map(t=>`<div class="card"><h2>${esc(t.passName)}（玩家 ${esc(t.player)}）— ${t.bad?'<span class="bad">壞旅客</span>':'<span class="good">好旅客</span>'}</h2>
-    <p>判決：${t.verdict==='pass'?'✅ 放行':'🚨 抓人'}${t.auto?'（超時隨機）':''}　任務：${esc(t.task)} → ${t.taskDone?'<span class="good">完成</span>':'<span class="dim">未完成</span>'}</p>
+  ${scoreHtml(e)}${plantEndHtml(e)}
+  ${e.travs.map((t,i)=>`<div class="card flip" style="animation-delay:${(e.rows.length+i)*.25}s"><h2>${esc(t.passName)}（玩家 ${esc(t.player)}）— ${t.bad?'<span class="bad">壞旅客</span>':'<span class="good">好旅客</span>'}</h2>
+    <p>判決：${t.verdict==='pass'?'✅ 放行':'🚨 抓人'}${t.auto?'（超時隨機）':''}${t.bribe&&t.bribe.st==='took'?`　<b class="warn">🎁 海關收了他的伴手禮「${esc(t.bribe.n)}」</b>`:t.bribe?`　🎁 送了「${esc(t.bribe.n)}」被拒收`:''}${t.strike&&t.strike.st==='done'?`　💥 最後一擊押「${t.strike.pick?'右':'左'}螢幕」→ ${t.strikeHit?'<b class="good">猜中</b>':'<b class="bad">猜錯</b>'}`:''}　任務：${esc(t.task)} → ${t.taskDone?'<span class="good">完成</span>':'<span class="dim">未完成</span>'}</p>
     <p class="dim">${t.bad?'（壞旅客的任務是誠實制，自己按鈕回報）':'🤖 系統判定：'+esc(t.taskDetail||'')}</p>
     ${t.real?`<p>通緝令上的本名：<b>${esc(t.real.name)}</b>（長相跟通緝令一模一樣）</p>`:''}
     ${lk(t.looks,88,t.deco)}${idList(t.id)}
-    <p>行李箱：${t.items.filter(i=>i.loc==='bag').map(i=>(i.c?(i.fits?'【違禁品・假職業剛好說得通】':'【違禁品】'):i.lg?'【合法職業用品】':'')+esc(i.n)+(i.why?`（${esc(i.why)}）`:'')).join('、')||'空'}<br>身上：${t.items.filter(i=>i.loc==='body').map(i=>`${slotLabel(i.slot)}＝${i.c?(i.fits?'【違禁品・假職業剛好說得通】':'【違禁品】'):i.lg?'【合法職業用品】':''}${esc(i.n)}${i.why?`（${esc(i.why)}）`:''}`).join('、')||'空'}</p></div>`).join('')}
+    <p>行李箱：${t.items.filter(i=>i.loc==='bag').map(i=>ico(i.n,i.c)+(i.pl?'【被栽贓】':'')+(i.c?(i.fits?'【違禁品・假職業剛好說得通】':'【違禁品】'):i.lg?'【合法職業用品】':'')+esc(i.n)+(mech('declare',v.cfg)?(i.dec?'（申報）':'（沒申報）'):'')+(i.why?`（${esc(i.why)}）`:'')).join('、')||'空'}${t.items.some(i=>i.loc==='dump')?`<br>超重被海關丟掉：${t.items.filter(i=>i.loc==='dump').map(i=>esc(i.n)+(i.pl?'【被栽贓】':'')).join('、')}`:''}<br>身上：${t.items.filter(i=>i.loc==='body').map(i=>`${slotLabel(i.slot)}＝${ico(i.n,i.c)}${i.c?(i.fits?'【違禁品・假職業剛好說得通】':'【違禁品】'):i.lg?'【合法職業用品】':''}${esc(i.n)}${mech('declare',v.cfg)?(i.dec?'（申報）':'（沒申報）'):''}${i.why?`（${esc(i.why)}）`:''}`).join('、')||'空'}</p></div>`).join('')}
+  ${mech('vote',v.cfg)&&(e.votes||[]).length?`<div class="card wide"><h2>🗳️ 投票紀錄（✔＝投對）</h2>${e.votes.map(x=>`<p style="margin:4px 0"><b>${esc(x.pass)}</b>（${x.bad?'<span class="bad">通緝犯</span>':'<span class="good">普通旅客</span>'}，判決${x.verdict==='pass'?'放行':'扣留'}${x.bribed?'・收賄':''}）：${x.votes.length?x.votes.map(q=>`<span class="chip ${q.v}">${(q.v==='arrest')===x.bad?'✔':'✖'} ${q.kind} ${esc(q.name)} ${q.v==='pass'?'放行':'扣留'}</span>`).join(''):'<span class="dim">沒人投票</span>'}</p>`).join('')}${e.goodSide>=0?`<p class="dim">好後台是<b>${e.goodSide?'右':'左'}螢幕</b>。</p>`:''}</div>`:''}
   <div class="card wide"><h2>📋 通緝名單</h2>${wantedTable(e.wanted)}</div>`+logCard(v);
 }
 
@@ -1035,8 +1642,11 @@ function localAct(m){
   if(m.local==='simAs'){simAs(m.pid);return}
   if(m.local==='simSkip'){if(G.phase==='prep'){G.deadline=Date.now()-1;tick()}return}
   if(m.local==='simNew'){G.phase='lobby';startGame();simAs(G.customs);pushAll();return}
+  if(m.local==='simTier'){if(TIER_MODES.includes(m.v)){G.cfg.tier=m.v;G.phase='lobby';startGame();simAs(G.customs);pushAll()}return}
   if(m.local==='simScr'){if(SCR_VARS.includes(m.v)){G.cfg.scr=m.v;G.phase='lobby';startGame();simAs(G.customs);pushAll()}return}
   if(m.local==='pool'){ui.pool=!ui.pool;render();return}
+  if(m.local==='plantTo'){ui.plantTo=m.q;render();return}
+  if(m.local==='simMech'){if(MECHS.some(d=>d.k===m.k)){G.cfg[m.k]=!mech(m.k,G.cfg);G.phase='lobby';startGame();simAs(G.customs);pushAll()}return}
   if(m.local==='simExit'){location.reload();return}
   if(m.local==='host'){if(!window.mqtt){fatal='連線元件沒載入，檢查網路後重新整理';render();return}if(readName())hostRoom()}
   else if(m.local==='join'){
@@ -1048,6 +1658,29 @@ function localAct(m){
   else if(m.local==='mute'){muted=!muted;try{localStorage.cs_mute=muted?'1':'0'}catch(e){}render()}
   else if(m.local==='wanted'){ui.wanted=!ui.wanted;render()}
 }
+// 下判：把印章拖到護照上才算（點一下不算，避免手滑）
+let drag=null;
+const overZone=(x,y)=>{const z=document.getElementById('pzone');if(!z)return null;const r=z.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom?z:null};
+document.addEventListener('pointerdown',e=>{
+  const s=e.target.closest&&e.target.closest('[data-stamp]');if(!s||drag)return;
+  e.preventDefault();
+  const g=s.cloneNode(true);g.classList.add('drag');g.style.left=e.clientX+'px';g.style.top=e.clientY+'px';document.body.appendChild(g);
+  drag={v:s.dataset.stamp,g,id:e.pointerId,moved:false,x:e.clientX,y:e.clientY,k:V&&V.metal&&V.metal.key};sfx.tone(300,60,'triangle',.12);
+});
+document.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.id)return;
+  drag.g.style.left=e.clientX+'px';drag.g.style.top=e.clientY+'px';
+  if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8)drag.moved=true;
+  const z=document.getElementById('pzone');if(z)z.classList.toggle('over',!!overZone(e.clientX,e.clientY));
+});
+document.addEventListener('pointerup',e=>{
+  if(!drag||e.pointerId!==drag.id)return;
+  const d=drag;drag=null;d.g.remove();
+  const z=overZone(e.clientX,e.clientY);
+  if(z){z.classList.remove('over');z.insertAdjacentHTML('beforeend',`<div class="imp" style="color:var(--${d.v==='pass'?'good':'bad'})">${d.v==='pass'?'放行':'抓人'}</div>`);sfx.tone(90,120,'square',.3,50);setTimeout(()=>send({a:'verdict',v:d.v,k:d.k}),300)}
+  else if(!d.moved)show('<div class="note" style="font-size:18px">把印章<b>拖到護照上</b>才算數</div>',1500);
+});
+document.addEventListener('pointercancel',e=>{if(drag&&e.pointerId===drag.id){drag.g.remove();drag=null}});
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b||b.disabled)return;
   const m=JSON.parse(b.dataset.a);if(m.local)localAct(m);else send(m);
