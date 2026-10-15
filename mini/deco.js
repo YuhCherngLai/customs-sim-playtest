@@ -83,6 +83,7 @@
 
   // 畫出帶塗鴉的膠囊人。o.full：半身像（有手臂）；否則是和 face() 一樣的 100x120 大頭照。
   // o.size：寬度 px（不給就由 CSS 決定）。回傳 SVG 字串。
+  function hashStr(t) { var h = 5381; for (var k = 0; k < t.length; k++) h = ((h << 5) + h + t.charCodeAt(k)) | 0; return (h >>> 0).toString(36); }
   function figure(looks, deco, o) {
     o = o || {};
     deco = deco || {};
@@ -94,9 +95,10 @@
     if (bgm) inner = inner.slice(bgm[0].length);
     var cut = inner.indexOf(SPLIT);
     var pre = cut < 0 ? inner : inner.slice(0, cut), post = cut < 0 ? '' : inner.slice(cut);
-    var id = 'mdc-clip-' + (++clipN);
     var strokes = (deco.strokes || []).map(strokeSvg).join('');
     var cloth = CLOTH[looks && looks['上衣']] || '#f6f6f6';
+    // 剪裁編號用內容算出來：同一張圖每次畫出來都一樣，主頁才不會以為畫面變了而整頁重畫（會讓動畫一直重播）
+    var id = 'mdc-clip-' + hashStr(inner + '|' + strokes + '|' + cloth);
     var out = [];
     var clip = '<path d="' + FACE_CLIP + '"/>';
     if (o.full) {
